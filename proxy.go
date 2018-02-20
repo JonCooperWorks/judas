@@ -21,10 +21,10 @@ func proxyRequest(u *url.URL, conn net.Conn) {
 		return
 	}
 
-	log.Println("Sending", request.Method, "request to", u.String())
-
-	request.URL = u
+	request.URL.Scheme = u.Scheme
+	request.URL.Host = u.Host
 	request.Host = u.Host
+	log.Println("Sending", request.Method, "request to", request.URL.String())
 
 	// Prevent panics, see: https://stackoverflow.com/questions/19595860/http-request-requesturi-field-when-making-request-in-go
 	request.RequestURI = ""
