@@ -14,7 +14,7 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-var targetURL = flag.String("target", "", "The website we want to phish")
+var targetURL = flag.String("target", "", "The website we want to phish.")
 var address = flag.String("address", "localhost:8080", "Address and port to run proxy service on. Format address:port.")
 var attachProfiler = flag.Bool("with-profiler", false, "Attach profiler to instance.")
 var proxyAddress = flag.String("proxy", "", "Optional upstream SOCKS5 proxy. Useful for torification.")
