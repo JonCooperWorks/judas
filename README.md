@@ -20,7 +20,7 @@ Example:
 ```
 
 By default, Judas listens on localhost:8080.
-To change this, use the ```address``` argument.
+To change this, use the ```--address``` argument.
 
 Example:
 ```
