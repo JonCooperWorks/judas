@@ -52,7 +52,9 @@ func (p *PhishingProxy) HandleConnection(conn net.Conn) {
 	r, err := httputil.DumpRequest(request, true)
 	if err != nil {
 		log.Println("Error dumping request to console.")
+		return
 	}
+
 	log.Println(string(r))
 	resp, err := p.client.Do(request)
 	if err != nil {
