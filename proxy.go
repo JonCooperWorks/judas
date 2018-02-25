@@ -90,7 +90,10 @@ func main() {
 	}
 	log.Println("Listening on:", *address)
 
-	var client *http.Client
+	client := &http.Client{
+		Timeout: DEFAULT_TIMEOUT,
+	}
+
 	if *proxyAddress != "" {
 		dialer, err := proxy.SOCKS5("tcp", *proxyAddress, nil, proxy.Direct)
 		if err != nil {
@@ -98,14 +101,7 @@ func main() {
 		}
 		httpTransport := &http.Transport{}
 		httpTransport.Dial = dialer.Dial
-		client = &http.Client{
-			Timeout:   DEFAULT_TIMEOUT,
-			Transport: httpTransport,
-		}
-	} else {
-		client = &http.Client{
-			Timeout: DEFAULT_TIMEOUT,
-		}
+		client.Transport = httpTransport
 	}
 
 	phishingProxy := &PhishingProxy{
