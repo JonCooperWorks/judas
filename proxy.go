@@ -35,7 +35,6 @@ func (p *PhishingProxy) rewriteHeaders(request *http.Request) {
 	request.URL.Scheme = p.targetURL.Scheme
 	request.URL.Host = p.targetURL.Host
 	request.Host = p.targetURL.Host
-	// Prevent panics, see: https://stackoverflow.com/questions/19595860/http-request-requesturi-field-when-making-request-in-go
 	request.RequestURI = ""
 }
 
