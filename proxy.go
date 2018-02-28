@@ -113,7 +113,6 @@ func (p *PhishingProxy) HandleConnection(conn net.Conn, transactions chan<- *HTT
 		return
 	}
 
-	log.Println(request.Method, request.URL, "-", resp.Status)
 	for _, transformer := range p.responseTransformers {
 		transformer.Transform(resp)
 	}
