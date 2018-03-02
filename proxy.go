@@ -13,6 +13,7 @@ import (
 	"net/http/httputil"
 	_ "net/http/pprof"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -175,12 +176,17 @@ func newInsecureListener(address string) (net.Listener, error) {
 	return net.Listen("tcp", address)
 }
 
+func exitWithError(message string) {
+	log.Println(message)
+	os.Exit(-1)
+}
+
 func main() {
 	flag.Parse()
 	log.Println("Setting target to", *targetURL)
 	u, err := url.Parse(*targetURL)
 	if err != nil {
-		panic(err.Error())
+		exitWithError(err.Error())
 	}
 
 	client := &http.Client{
@@ -190,7 +196,7 @@ func main() {
 	if *proxyAddress != "" {
 		dialer, err := proxy.SOCKS5("tcp", *proxyAddress, nil, proxy.Direct)
 		if err != nil {
-			panic(err.Error())
+			exitWithError(err.Error())
 		}
 		httpTransport := &http.Transport{}
 		httpTransport.Dial = dialer.Dial
@@ -219,13 +225,12 @@ func main() {
 	if *insecure {
 		server, err = newInsecureListener(*address)
 		if err != nil {
-			panic(err)
+			exitWithError(err.Error())
 		}
 	} else {
 		if *privateKeyPath == "" && *certPath == "" {
-			panic("--private-key and --cert arguments must point to x509 encoded PEM private key and certificate, or call with the --insecure flag.")
+			exitWithError("--private-key and --cert arguments must point to x509 encoded PEM private key and certificate, or call with the --insecure flag.")
 		}
-
 		server, err = newTlsListener(*address, *certPath, *privateKeyPath)
 	}
 	var listenAddr string
