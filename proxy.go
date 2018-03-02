@@ -185,8 +185,10 @@ func setupRequiredFlags() {
 		exitWithError("--target is required.")
 	}
 
-	if *privateKeyPath == "" && *certPath == "" {
-		exitWithError("--private-key and --cert arguments must point to x509 encoded PEM private key and certificate, or call with the --insecure flag.")
+	if !*insecure {
+		if *privateKeyPath == "" || *certPath == "" {
+			exitWithError("--private-key and --cert arguments must point to x509 encoded PEM private key and certificate, or call with the --insecure flag.")
+		}
 	}
 }
 
