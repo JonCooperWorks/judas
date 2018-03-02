@@ -5,7 +5,9 @@ It can clone a website passed to it using command line flags.
 
 Usage
 -----
-The only required command line flag is ```--target```.
+The target ```--target``` flag is required.
+By default, Judas requires a path to a SSL certificate (```--cert```) and a SSL private key (```--private-key```).
+If you want to listen using HTTP, pass the ```--insecure``` flag.
 
 Example:
 ```
