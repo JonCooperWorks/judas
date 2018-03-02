@@ -235,11 +235,11 @@ func main() {
 	var server net.Listener
 	if *insecure {
 		server, err = newInsecureListener(*address)
-		if err != nil {
-			exitWithError(err.Error())
-		}
 	} else {
 		server, err = newTlsListener(*address, *certPath, *privateKeyPath)
+	}
+	if err != nil {
+		exitWithError(err.Error())
 	}
 	var listenAddr string
 	if *insecure {
