@@ -11,7 +11,11 @@ If you want to listen using HTTP, pass the ```--insecure``` flag.
 
 Example:
 ```
-./proxy --target https://target-url.com
+./proxy --target https://target-url.com --cert server.crt --private-key server.key
+```
+
+```
+./proxy --target https://target-url.com --insecure
 ```
 
 It can optionally use an upstream proxy with the ```--proxy``` argument to proxy Tor websites or hide the attack server from the target.
