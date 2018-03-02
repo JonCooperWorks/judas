@@ -62,9 +62,7 @@ func (j JavaScriptInjectionTransformer) Transform(response *http.Response) error
 	// Prevent NewDocumentFromReader from closing the response body.
 	responseText, err := ioutil.ReadAll(response.Body)
 	responseBuffer := bytes.NewBuffer(responseText)
-	defer func(response *http.Response, responseBuffer *bytes.Buffer) {
-		response.Body = ioutil.NopCloser(responseBuffer)
-	}(response, responseBuffer)
+	response.Body = ioutil.NopCloser(responseBuffer)
 
 	if err != nil {
 		return err
