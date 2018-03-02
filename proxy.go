@@ -181,8 +181,23 @@ func exitWithError(message string) {
 	os.Exit(-1)
 }
 
-func main() {
+func setupRequiredFlags() {
 	flag.Parse()
+	if *address == "" {
+		exitWithError("--address is required.")
+	}
+
+	if *targetURL == "" {
+		exitWithError("--target is required.")
+	}
+
+	if *privateKeyPath == "" && *certPath == "" {
+		exitWithError("--private-key and --cert arguments must point to x509 encoded PEM private key and certificate, or call with the --insecure flag.")
+	}
+}
+
+func main() {
+	setupRequiredFlags()
 	log.Println("Setting target to", *targetURL)
 	u, err := url.Parse(*targetURL)
 	if err != nil {
@@ -228,9 +243,6 @@ func main() {
 			exitWithError(err.Error())
 		}
 	} else {
-		if *privateKeyPath == "" && *certPath == "" {
-			exitWithError("--private-key and --cert arguments must point to x509 encoded PEM private key and certificate, or call with the --insecure flag.")
-		}
 		server, err = newTlsListener(*address, *certPath, *privateKeyPath)
 	}
 	var listenAddr string
