@@ -251,7 +251,8 @@ func main() {
 	for {
 		conn, err := server.Accept()
 		if err != nil {
-			exitWithError(fmt.Sprintf("Error when accepting request: %s", err.Error()))
+			log.Println("Error when accepting request,", err.Error())
+			continue
 		}
 		go phishingProxy.HandleConnection(conn, transactions)
 	}
