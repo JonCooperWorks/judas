@@ -117,7 +117,9 @@ func (p *PhishingProxy) HandleConnection(conn net.Conn, transactions chan<- *HTT
 
 	for _, transformer := range p.responseTransformers {
 		err := transformer.Transform(resp)
-		log.Println("Error transforming:", err.Error())
+		if err != nil {
+			log.Println("Error transforming:", err.Error())
+		}
 	}
 
 	modifiedResponse, err := httputil.DumpResponse(resp, true)
@@ -163,7 +165,6 @@ func newTlsListener(address, certPath, privateKeyPath string) (net.Listener, err
 
 	config := &tls.Config{Certificates: []tls.Certificate{cer}}
 	return tls.Listen("tcp", address, config)
-
 }
 
 func newInsecureListener(address string) (net.Listener, error) {
