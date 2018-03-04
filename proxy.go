@@ -102,7 +102,7 @@ func (p *PhishingProxy) copyRequest(request *http.Request) (*http.Request, error
 	if err != nil {
 		return nil, err
 	}
-	for key, _ := range request.Header {
+	for key := range request.Header {
 		req.Header.Set(key, request.Header.Get(key))
 	}
 	if request.Referer() != "" {
