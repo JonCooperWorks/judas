@@ -8,9 +8,9 @@ import (
 
 var Name = "JudasLoggingPlugin"
 
-func Initialize() (map[string]*string, error) {
+func Initialize() (map[string]interface{}, error) {
 	log.Println("Initializing", Name)
-	return map[string]*string{}, nil
+	return map[string]interface{}{}, nil
 }
 
 func ProcessTransactions(
@@ -18,7 +18,7 @@ func ProcessTransactions(
 		Request  http.Request
 		Response http.Response
 	},
-	arguments map[string]*string,
+	arguments map[string]interface{},
 ) {
 	for transaction := range transactions {
 		req, err := httputil.DumpRequest(&transaction.Request, true)

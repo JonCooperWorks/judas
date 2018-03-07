@@ -11,8 +11,8 @@ var (
 	ErrPluginMalformed = errors.New("malformed plugin: MUST export Name string, Intialize func() (map[string]string, error) and ProcessTransactions func(chan<- HTTPTransaction, map[string]string)")
 )
 
-// PluginArguments is a map[string]*string of arguments to be passed to your ProcessTransactions method.
-type PluginArguments map[string]*string
+// PluginArguments is a map[string]interface{} of arguments to be passed to your ProcessTransactions method.
+type PluginArguments map[string]interface{}
 
 // JudasPlugin contains functions and variables that Judas will be looking for in your plugin.
 // Plugins will be loaded from any .so file in the same directory as the judas executable.
@@ -21,8 +21,8 @@ type JudasPlugin struct {
 	Name string
 
 	// Initialize is where you should do your plugin's setup, like defining command line flags.
-	// You are allowed to return a map[string]*string of arguments that will be passed to your ProcessTransactions function.
-	Intialize func() (map[string]*string, error)
+	// You are allowed to return a map[string]interface{} of arguments that will be passed to your ProcessTransactions function.
+	Intialize func() (map[string]interface{}, error)
 
 	// ProcessTransactions takes a chan that produces request - response pair and does something.
 	// Judas plugins should implement this method to process request - response pairs as they are generated.
@@ -32,7 +32,7 @@ type JudasPlugin struct {
 			Request  http.Request
 			Response http.Response
 		},
-		map[string]*string,
+		map[string]interface{},
 	)
 }
 
@@ -60,13 +60,13 @@ func NewJudasPlugin(path string) (*JudasPlugin, error) {
 
 	return &JudasPlugin{
 		Name:      *name.(*string),
-		Intialize: initialize.(func() (map[string]*string, error)),
+		Intialize: initialize.(func() (map[string]interface{}, error)),
 		ProcessTransactions: processTransactions.(func(
 			<-chan struct {
 				Request  http.Request
 				Response http.Response
 			},
-			map[string]*string,
+			map[string]interface{},
 		)),
 	}, nil
 }
