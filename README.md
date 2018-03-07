@@ -5,7 +5,17 @@ It can clone a website passed to it using command line flags.
 
 Building
 --------
-To build Judas, simply ```go build -o judas proxy.go```
+To build Judas, first, get the dependencies:
+ ```
+ go get golang.org/x/net/proxy
+ go get github.com/PuerkitoBio/goquery
+ go build -o judas *.go
+ ```
+
+ Next, build the logging plugin if you want to see responses on the console.
+```
+go build -buildmode=plugin -o loggingplugin.so plugins/loggingplugin.go
+```
 
 Usage
 -----
