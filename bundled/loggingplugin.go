@@ -7,14 +7,18 @@ import (
 	"github.com/joncooperworks/judas/plugins"
 )
 
-var Name = "JudasLoggingPlugin"
+type loggingPlugin struct{}
 
-func Initialize() (plugins.PluginArguments, error) {
-	log.Println("Initializing", Name)
+func (l loggingPlugin) Name() string {
+	return "LoggingPlugin"
+}
+
+func (l loggingPlugin) Initialize() (plugins.PluginArguments, error) {
+	log.Println("Initializing", l.Name())
 	return map[string]interface{}{}, nil
 }
 
-func ProcessTransactions(transactions <-chan plugins.HTTPTransaction, arguments plugins.PluginArguments) {
+func (l loggingPlugin) ProcessTransactions(transactions <-chan plugins.HTTPTransaction, arguments plugins.PluginArguments) {
 	for transaction := range transactions {
 		req, err := httputil.DumpRequest(&transaction.Request, true)
 		if err != nil {
@@ -31,6 +35,8 @@ func ProcessTransactions(transactions <-chan plugins.HTTPTransaction, arguments 
 		log.Println(string(resp))
 	}
 }
+
+var Plugin loggingPlugin
 
 func main() {
 	// Shut the IDE up.

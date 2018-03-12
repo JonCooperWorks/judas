@@ -69,13 +69,13 @@ func setupRequiredFlags() {
 	}
 }
 
-func loadPluginsFromDirectory(pluginsDirectory string) (map[*plugins.JudasPlugin]plugins.PluginArguments, error) {
+func loadPluginsFromDirectory(pluginsDirectory string) (map[plugins.Plugin]plugins.PluginArguments, error) {
 	pluginFilePaths, err := filepath.Glob(pluginsDirectory)
 	if err != nil {
 		return nil, err
 	}
 
-	installedPlugins := map[*plugins.JudasPlugin]plugins.PluginArguments{}
+	installedPlugins := map[plugins.Plugin]plugins.PluginArguments{}
 	for _, filepath := range pluginFilePaths {
 		plugin, err := plugins.New(filepath)
 		if err != nil {
@@ -83,7 +83,7 @@ func loadPluginsFromDirectory(pluginsDirectory string) (map[*plugins.JudasPlugin
 			return nil, err
 		}
 
-		arguments, err := plugin.Intialize()
+		arguments, err := plugin.Initialize()
 		if err != nil {
 			return nil, err
 		}

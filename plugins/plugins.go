@@ -20,47 +20,33 @@ type HTTPTransaction struct {
 // PluginArguments is a map[string]interface{} of arguments to be passed to your ProcessTransactions method.
 type PluginArguments map[string]interface{}
 
-// JudasPlugin contains functions and variables that Judas will be looking for in your plugin.
+// Plugin contains functions and variables that Judas will be looking for in your plugin.
 // Plugins will be loaded from any .so file in the same directory as the judas executable.
-type JudasPlugin struct {
+type Plugin interface {
 	// Name of the plugin.
-	Name string
+	Name() string
 
 	// Initialize is where you should do your plugin's setup, like defining command line flags.
 	// You are allowed to return a PluginArguments of arguments that will be passed to your ProcessTransactions function.
-	Intialize func() (PluginArguments, error)
+	Initialize() (PluginArguments, error)
 
 	// ProcessTransactions takes a chan that produces request - response pair and does something.
 	// Judas plugins should implement this method to process request - response pairs as they are generated.
 	// Requests and responses will be passed by value, allowing each plugin to run in its own goroutine.
-	ProcessTransactions func(<-chan HTTPTransaction, PluginArguments)
+	ProcessTransactions(<-chan HTTPTransaction, PluginArguments)
 }
 
 // New loads a JudasPlugin from a file path.
 // TODO: Add code signing.
-func New(path string) (*JudasPlugin, error) {
+func New(path string) (Plugin, error) {
 	plugin, err := plugin.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	name, err := plugin.Lookup("Name")
-	if err != nil {
-		return nil, ErrPluginMalformed
-	}
 
-	initialize, err := plugin.Lookup("Initialize")
+	p, err := plugin.Lookup("Plugin")
 	if err != nil {
-		return nil, ErrPluginMalformed
+		return nil, err
 	}
-
-	processTransactions, err := plugin.Lookup("ProcessTransactions")
-	if err != nil {
-		return nil, ErrPluginMalformed
-	}
-
-	return &JudasPlugin{
-		Name:                *name.(*string),
-		Intialize:           initialize.(func() (PluginArguments, error)),
-		ProcessTransactions: processTransactions.(func(<-chan HTTPTransaction, PluginArguments)),
-	}, nil
+	return p.(Plugin), nil
 }
