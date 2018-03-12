@@ -17,7 +17,7 @@ type HTTPTransaction struct {
 	Response http.Response
 }
 
-// PluginArguments is a map[string]interface{} of arguments to be passed to your ProcessTransactions method.
+// PluginArguments is a map[string]interface{} of arguments to be passed to your ProcessTransactions function.
 type PluginArguments map[string]interface{}
 
 // Plugin contains functions and variables that Judas will be looking for in your plugin.
@@ -31,7 +31,7 @@ type Plugin interface {
 	Initialize() (PluginArguments, error)
 
 	// ProcessTransactions takes a chan that produces request - response pair and does something.
-	// Judas plugins should implement this method to process request - response pairs as they are generated.
+	// Judas plugins should implement this function to process request - response pairs as they are generated.
 	// Requests and responses will be passed by value, allowing each plugin to run in its own goroutine.
 	ProcessTransactions(<-chan HTTPTransaction, PluginArguments)
 }

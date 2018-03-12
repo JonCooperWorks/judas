@@ -79,7 +79,6 @@ func loadPluginsFromDirectory(pluginsDirectory string) (map[plugins.Plugin]plugi
 	for _, filepath := range pluginFilePaths {
 		plugin, err := plugins.New(filepath)
 		if err != nil {
-			log.Println("Error loading", plugin)
 			return nil, err
 		}
 
