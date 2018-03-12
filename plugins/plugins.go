@@ -33,10 +33,7 @@ type JudasPlugin struct {
 	// ProcessTransactions takes a chan that produces request - response pair and does something.
 	// Judas plugins should implement this method to process request - response pairs as they are generated.
 	// Requests and responses will be passed by value, allowing each plugin to run in its own goroutine.
-	ProcessTransactions func(
-		<-chan HTTPTransaction,
-		PluginArguments,
-	)
+	ProcessTransactions func(<-chan HTTPTransaction, PluginArguments)
 }
 
 // New loads a JudasPlugin from a file path.
