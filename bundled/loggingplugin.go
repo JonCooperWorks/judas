@@ -2,24 +2,19 @@ package main
 
 import (
 	"log"
-	"net/http"
 	"net/http/httputil"
+
+	"github.com/joncooperworks/judas/plugins"
 )
 
 var Name = "JudasLoggingPlugin"
 
-func Initialize() (map[string]interface{}, error) {
+func Initialize() (plugins.PluginArguments, error) {
 	log.Println("Initializing", Name)
 	return map[string]interface{}{}, nil
 }
 
-func ProcessTransactions(
-	transactions <-chan struct {
-		Request  http.Request
-		Response http.Response
-	},
-	arguments map[string]interface{},
-) {
+func ProcessTransactions(transactions <-chan plugins.HTTPTransaction, arguments plugins.PluginArguments) {
 	for transaction := range transactions {
 		req, err := httputil.DumpRequest(&transaction.Request, true)
 		if err != nil {
@@ -35,4 +30,8 @@ func ProcessTransactions(
 		}
 		log.Println(string(resp))
 	}
+}
+
+func main() {
+	// Shut the IDE up.
 }

@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/joncooperworks/judas/plugins"
 	"golang.org/x/net/proxy"
 )
 
@@ -31,13 +32,6 @@ var (
 	certPath       = flag.String("cert", "", "Path to the x509 encoded SSL certificate in PEM format.")
 	privateKeyPath = flag.String("private-key", "", "Path to the x509 encoded certificate in PEM format.")
 )
-
-// HTTPTransaction represents a complete request - response flow.
-// TODO: Move into its own package.
-type HTTPTransaction struct {
-	Request  http.Request
-	Response http.Response
-}
 
 func newTLSListener(address, certPath, privateKeyPath string) (net.Listener, error) {
 	cer, err := tls.LoadX509KeyPair(certPath, privateKeyPath)
@@ -75,15 +69,15 @@ func setupRequiredFlags() {
 	}
 }
 
-func loadPluginsFromDirectory(pluginsDirectory string) (map[*JudasPlugin]PluginArguments, error) {
+func loadPluginsFromDirectory(pluginsDirectory string) (map[*plugins.JudasPlugin]plugins.PluginArguments, error) {
 	pluginFilePaths, err := filepath.Glob(pluginsDirectory)
 	if err != nil {
 		return nil, err
 	}
 
-	plugins := map[*JudasPlugin]PluginArguments{}
+	installedPlugins := map[*plugins.JudasPlugin]plugins.PluginArguments{}
 	for _, filepath := range pluginFilePaths {
-		plugin, err := NewJudasPlugin(filepath)
+		plugin, err := plugins.New(filepath)
 		if err != nil {
 			log.Println("Error loading", plugin)
 			return nil, err
@@ -93,13 +87,13 @@ func loadPluginsFromDirectory(pluginsDirectory string) (map[*JudasPlugin]PluginA
 		if err != nil {
 			return nil, err
 		}
-		plugins[plugin] = arguments
+		installedPlugins[plugin] = arguments
 	}
-	return plugins, nil
+	return installedPlugins, nil
 }
 
 func main() {
-	plugins, err := loadPluginsFromDirectory("*.so")
+	installedPlugins, err := loadPluginsFromDirectory("*.so")
 	if err != nil {
 		exitWithError(err.Error())
 	}
@@ -158,13 +152,10 @@ func main() {
 		listenAddr = fmt.Sprintf("https://%s", *address)
 	}
 	log.Println("Listening on:", listenAddr)
-	transactions := make(chan struct {
-		Request  http.Request
-		Response http.Response
-	})
+	transactions := make(chan plugins.HTTPTransaction)
 
 	// Process all the plugin arguments.
-	for plugin, arguments := range plugins {
+	for plugin, arguments := range installedPlugins {
 		go plugin.ProcessTransactions(transactions, arguments)
 	}
 

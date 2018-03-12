@@ -1,4 +1,4 @@
-package main
+package plugins
 
 import (
 	"errors"
@@ -11,6 +11,12 @@ var (
 	ErrPluginMalformed = errors.New("malformed plugin: MUST export Name string, Intialize func() (map[string]string, error) and ProcessTransactions func(chan<- HTTPTransaction, map[string]string)")
 )
 
+// HTTPTransaction represents a complete request - response flow.
+type HTTPTransaction struct {
+	Request  http.Request
+	Response http.Response
+}
+
 // PluginArguments is a map[string]interface{} of arguments to be passed to your ProcessTransactions method.
 type PluginArguments map[string]interface{}
 
@@ -21,24 +27,21 @@ type JudasPlugin struct {
 	Name string
 
 	// Initialize is where you should do your plugin's setup, like defining command line flags.
-	// You are allowed to return a map[string]interface{} of arguments that will be passed to your ProcessTransactions function.
-	Intialize func() (map[string]interface{}, error)
+	// You are allowed to return a PluginArguments of arguments that will be passed to your ProcessTransactions function.
+	Intialize func() (PluginArguments, error)
 
 	// ProcessTransactions takes a chan that produces request - response pair and does something.
 	// Judas plugins should implement this method to process request - response pairs as they are generated.
 	// Requests and responses will be passed by value, allowing each plugin to run in its own goroutine.
 	ProcessTransactions func(
-		<-chan struct {
-			Request  http.Request
-			Response http.Response
-		},
-		map[string]interface{},
+		<-chan HTTPTransaction,
+		PluginArguments,
 	)
 }
 
-// NewJudasPlugin loads a JudasPlugin from a file path.
+// New loads a JudasPlugin from a file path.
 // TODO: Add code signing.
-func NewJudasPlugin(path string) (*JudasPlugin, error) {
+func New(path string) (*JudasPlugin, error) {
 	plugin, err := plugin.Open(path)
 	if err != nil {
 		return nil, err
@@ -59,14 +62,8 @@ func NewJudasPlugin(path string) (*JudasPlugin, error) {
 	}
 
 	return &JudasPlugin{
-		Name:      *name.(*string),
-		Intialize: initialize.(func() (map[string]interface{}, error)),
-		ProcessTransactions: processTransactions.(func(
-			<-chan struct {
-				Request  http.Request
-				Response http.Response
-			},
-			map[string]interface{},
-		)),
+		Name:                *name.(*string),
+		Intialize:           initialize.(func() (PluginArguments, error)),
+		ProcessTransactions: processTransactions.(func(<-chan HTTPTransaction, PluginArguments)),
 	}, nil
 }

