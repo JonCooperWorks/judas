@@ -117,7 +117,9 @@ func main() {
 		client.Transport = httpTransport
 	}
 
-	responseTransformers := []ResponseTransformer{}
+	responseTransformers := []ResponseTransformer{
+		LocationRewritingResponseTransformer{},
+	}
 	if *javascriptURL != "" {
 		responseTransformers = append(responseTransformers, JavaScriptInjectionTransformer{javascriptURL: *javascriptURL})
 	}
