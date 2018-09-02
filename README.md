@@ -62,7 +62,25 @@ To create your own plugin, simply create a Go plugin using the standard library 
 
 Judas looks for the following symbols:
 ```
-var Name string
-func Initialize() (plugins.PluginArguments, error)
-func ProcessTransactions(transactions <-chan plugins.HTTPTransaction, arguments plugins.PluginArguments)
+var Plugin plugins.Plugin
+```
+
+Your plugins must implement the Plugin interface found in github.com/joncooperworks/judas/plugins.
+
+```
+// Plugin contains functions and variables that Judas will be looking for in your plugin.
+// Plugins will be loaded from any .so file in the same directory as the judas executable.
+type Plugin interface {
+	// Name of the plugin.
+	Name() string
+
+	// Initialize is where you should do your plugin's setup, like defining command line flags.
+	// You are allowed to return a PluginArguments of arguments that will be passed to your ProcessTransactions function.
+	Initialize() (PluginArguments, error)
+
+	// ProcessTransactions takes a chan that produces request - response pair and does something.
+	// Judas plugins should implement this function to process request - response pairs as they are generated.
+	// Requests and responses will be passed by value, allowing each plugin to run in its own goroutine.
+	ProcessTransactions(<-chan HTTPTransaction, PluginArguments)
+}
 ```
