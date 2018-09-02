@@ -52,3 +52,28 @@ func (j JavaScriptInjectionTransformer) Transform(response *http.Response) error
 	response.Body = ioutil.NopCloser(bytes.NewBufferString(html))
 	return nil
 }
+
+type LocationRewritingResponseTransformer struct{}
+
+func (l LocationRewritingResponseTransformer) Transform(response *http.Response) error {
+	location, err := response.Location()
+	if err != nil {
+		if err == http.ErrNoLocation {
+			return nil
+		}
+		return err
+	}
+
+	// Turn it into a relative URL
+	location.Scheme = ""
+	location.Host = ""
+	response.Header.Set("Location", location.String())
+	return nil
+}
+
+type CSPRemovingTransformer struct{}
+
+func (c CSPRemovingTransformer) Transform(response *http.Response) error {
+	response.Header.Del("Content-Security-Policy")
+	return nil
+}

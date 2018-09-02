@@ -24,9 +24,11 @@ func (l loggingPlugin) Initialize() (plugins.PluginArguments, error) {
 // ProcessTransactions logs each HTTP request - response to console.
 func (l loggingPlugin) ProcessTransactions(transactions <-chan plugins.HTTPTransaction, arguments plugins.PluginArguments) {
 	for transaction := range transactions {
-		req, err := httputil.DumpRequest(&transaction.Request, true)
+		request := transaction.Request
+		req, err := httputil.DumpRequest(&request, true)
 		if err != nil {
 			log.Println("Error dumping request to console.")
+			log.Println(err.Error())
 			return
 		}
 		log.Println(string(req))
@@ -34,6 +36,7 @@ func (l loggingPlugin) ProcessTransactions(transactions <-chan plugins.HTTPTrans
 		resp, err := httputil.DumpResponse(&transaction.Response, false)
 		if err != nil {
 			log.Println("Error dumping response to console.")
+			log.Println(err.Error())
 			return
 		}
 		log.Println(string(resp))
