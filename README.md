@@ -24,6 +24,7 @@ Usage
 The target ```--target``` flag is required.
 By default, Judas requires a path to a SSL certificate (```--cert```) and a SSL private key (```--private-key```).
 If you want to listen using HTTP, pass the ```--insecure``` flag.
+If you want to accept self-signed SSL certificate from target host, pass the ```--insecure-target``` flag.
 
 Example:
 ```
@@ -33,6 +34,11 @@ Example:
 ```
 ./judas --target https://target-url.com --insecure
 ```
+
+```
+./judas --target https://target-url-with-self-signed-cert.com --insecure-target
+```
+
 
 It can optionally use an upstream proxy with the ```--proxy``` argument to proxy Tor websites or hide the attack server from the target.
 
