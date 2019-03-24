@@ -30,6 +30,7 @@ var (
 	proxyAddress   = flag.String("proxy", "", "Optional upstream SOCKS5 proxy. Useful for torification.")
 	javascriptURL  = flag.String("inject-js", "", "URL to a JavaScript file you want injected.")
 	insecure       = flag.Bool("insecure", false, "Listen without TLS.")
+	sourceInsecure = flag.Bool("insecure-target", false, "Not verify SSL certificate from target host.")
 	certPath       = flag.String("cert", "", "Path to the x509 encoded SSL certificate in PEM format.")
 	privateKeyPath = flag.String("private-key", "", "Path to the x509 encoded certificate in PEM format.")
 )

