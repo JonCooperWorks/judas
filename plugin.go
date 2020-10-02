@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 	"net/url"
-	"sync"
+	"plugin"
 )
 
 // InitializerFunc is a go function that should be exported by a function package.
@@ -14,14 +14,13 @@ type InitializerFunc func(*log.Logger) (Plugin, error)
 
 // PluginBroker handles sending messages to plugins.
 type PluginBroker struct {
-	plugins   []*pluginInfo
-	waitGroup sync.WaitGroup
+	plugins []*pluginInfo
 }
 
 // SendResult sends a *Result to all loaded plugins for further processing.
 func (p *PluginBroker) SendResult(exchange *HTTPExchange) error {
 	for _, plugin := range p.plugins {
-		// Give each plugin its own request.
+		// Give each plugin its own request and response.
 		req, err := exchange.Request.CloneBody(context.Background())
 		if err != nil {
 			return err
@@ -32,17 +31,12 @@ func (p *PluginBroker) SendResult(exchange *HTTPExchange) error {
 			return err
 		}
 
-		exchange.Request = req
-		exchange.Response = resp
-
-		plugin.Input <- exchange
+		plugin.Input <- &HTTPExchange{
+			Request:  req,
+			Response: resp,
+		}
 	}
 	return nil
-}
-
-// Wait blocks the goroutine until all plugins have finished executing.
-func (p *PluginBroker) Wait() {
-	p.waitGroup.Wait()
 }
 
 // SignalDone closes all plugin chans that are waiting on results.
@@ -55,14 +49,46 @@ func (p *PluginBroker) SignalDone() {
 
 func (p *PluginBroker) add(plugin *pluginInfo) {
 	p.plugins = append(p.plugins, plugin)
-	p.waitGroup.Add(1)
 }
 
 func (p *PluginBroker) run(plugin *pluginInfo, exchanges <-chan *HTTPExchange) {
-	go func() {
-		plugin.Listen(exchanges)
-		p.waitGroup.Done()
-	}()
+	go plugin.Listen(exchanges)
+}
+
+// LoadPlugins loads judas plugins from a list of file paths.
+func LoadPlugins(logger *log.Logger, paths []string) (*PluginBroker, error) {
+	broker := &PluginBroker{}
+
+	for _, path := range paths {
+		plg, err := plugin.Open(path)
+		if err != nil {
+			return nil, err
+		}
+
+		symbol, err := plg.Lookup("New")
+		if err != nil {
+			return nil, err
+		}
+
+		// Go needs this, InitializerFunc is purely for documentation.
+		initializer := symbol.(func(*log.Logger) (Plugin, error))
+		judasPlugin, err := initializer(logger)
+		if err != nil {
+			return nil, err
+		}
+
+		input := make(chan *HTTPExchange)
+		httpfuzzPlugin := &pluginInfo{
+			Input:  input,
+			Plugin: judasPlugin,
+		}
+
+		// Listen for results in a goroutine for each plugin
+		broker.add(httpfuzzPlugin)
+		broker.run(httpfuzzPlugin, input)
+	}
+
+	return broker, nil
 }
 
 // Plugin implementations will be given a stream of HTTPExchanges to let plugins capture valuable information out of request-response transactions.

