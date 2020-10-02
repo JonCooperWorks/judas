@@ -94,3 +94,8 @@ You can put plugins in a directory and pass them with the `--plugins-dir` flag.
 By default it's `./plugins`.
 
 See [examples/searchloggingplugin/searchloggingplugin.go](https://github.com/JonCooperWorks/judas/tree/master/examples/searchloggingplugin/searchloggingplugin.go)
+
+You can build a plugin using this command:
+```
+go build -buildmode=plugin path/to/plugin.go
+```
