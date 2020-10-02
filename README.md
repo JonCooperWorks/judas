@@ -36,7 +36,7 @@ It can optionally use an upstream proxy with the ```--proxy``` argument to proxy
 
 Example:
 ```
-./judas --target https://torwebsite.onion --cert server.crt --private-key server.key --proxy localhost:9150
+./judas --target https://torwebsite.onion --cert server.crt --private-key server.key --proxy socks5://localhost:9150
 ```
 
 By default, Judas listens on localhost:8080.
