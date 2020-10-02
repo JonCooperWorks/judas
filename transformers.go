@@ -1,4 +1,4 @@
-package main
+package judas
 
 import (
 	"bytes"
@@ -17,7 +17,7 @@ type ResponseTransformer interface {
 
 // JavaScriptInjectionTransformer holds JavaScript filename for injecting into response.
 type JavaScriptInjectionTransformer struct {
-	javascriptURL string
+	JavascriptURL string
 }
 
 // Transform Injects JavaScript into an HTML response.
@@ -39,7 +39,7 @@ func (j JavaScriptInjectionTransformer) Transform(response *http.Response) error
 		return err
 	}
 
-	payload := fmt.Sprintf("<script type='text/javascript' src='%s'></script>", j.javascriptURL)
+	payload := fmt.Sprintf("<script type='text/javascript' src='%s'></script>", j.JavascriptURL)
 	selection := document.
 		Find("head").
 		AppendHtml(payload).
@@ -53,8 +53,10 @@ func (j JavaScriptInjectionTransformer) Transform(response *http.Response) error
 	return nil
 }
 
+// LocationRewritingResponseTransformer prevents the Location header from redirecting users to the target website.
 type LocationRewritingResponseTransformer struct{}
 
+// Transform performs the Location rewrite.
 func (l LocationRewritingResponseTransformer) Transform(response *http.Response) error {
 	location, err := response.Location()
 	if err != nil {
@@ -71,8 +73,10 @@ func (l LocationRewritingResponseTransformer) Transform(response *http.Response)
 	return nil
 }
 
+// CSPRemovingTransformer prevents CSP from ruining all the fun.
 type CSPRemovingTransformer struct{}
 
+// Transform removes CSPs from responses to prevent CSPs from ruining all the fun.
 func (c CSPRemovingTransformer) Transform(response *http.Response) error {
 	response.Header.Del("Content-Security-Policy")
 	return nil
