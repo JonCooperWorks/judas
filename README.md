@@ -14,7 +14,7 @@ To build `judas`, simply run `go build`.
 Usage
 -----
 The target ```--target``` flag is required.
-By default, `judas` requires a path to a SSL certificate (```--cert```) and a SSL private key (```--private-key```).
+`judas` will use Let's Encrypt to automatically create SSL certificates for website.
 If you want to listen using HTTP, pass the ```--insecure``` flag.
 If you want to accept self-signed SSL certificate from target host, pass the ```--insecure-target``` flag.
 
