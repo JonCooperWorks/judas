@@ -39,20 +39,28 @@ Usage
 -----
 The target ```--target``` flag is required.
 `judas` will use Let's Encrypt to automatically create SSL certificates for website, simply pass the `--ssl-hostname` flag.
+
+```
+./judas \
+    --target https://target-url.com \
+    --ssl-hostname phishingsite.com
+```
+
 If you want to listen using HTTP, pass the ```--insecure``` flag.
+```
+./judas \
+    --target https://target-url.com \
+    --insecure
+```
+
 If you want to accept self-signed SSL certificate from target host, pass the ```--insecure-target``` flag.
-
-Example:
-```
-./judas --target https://target-url.com --ssl-hostname phishingsite.com
-```
+This is useful for passing it through an intercepting proxy like Burp Suite for debugging purposes.
 
 ```
-./judas --target https://target-url.com --insecure
-```
-
-```
-./judas --target https://target-url-with-self-signed-cert.com --insecure-target
+./judas \
+    --target https://target-url-with-self-signed-cert.com \
+    --proxy http://localhost:8080
+    --insecure-target
 ```
 
 
@@ -60,7 +68,10 @@ It can optionally use an upstream proxy with the ```--proxy``` argument to proxy
 
 Example:
 ```
-./judas --target https://torwebsite.onion --ssl-hostname phishingsite.com --proxy socks5://localhost:9150
+./judas \
+    --target https://torwebsite.onion \
+    --ssl-hostname phishingsite.com \
+    --proxy socks5://localhost:9150
 ```
 
 By default, Judas listens on localhost:8080.
@@ -68,7 +79,10 @@ To change this, use the ```--address``` argument.
 
 Example:
 ```
-./judas --target https://target-url.com --ssl-hostname phishingsite.com --address=0.0.0.0:8080
+./judas \
+    --target https://target-url.com \
+    --ssl-hostname phishingsite.com \
+    --address=0.0.0.0:8080
 ```
 
 Judas can also inject custom JavaScript into requests by passing a URL to a JS file with the ```--inject-js``` argument.
@@ -124,7 +138,7 @@ judas \
      --insecure \
      --address localhost:9000 \
      --proxy http://localhost:8080 \
-     --insecure-target
+     --insecure-target \
      --plugin ./searchloggingplugin.so:./linksloggingplugin.so
 ```
 
