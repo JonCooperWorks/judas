@@ -15,6 +15,7 @@ type InitializerFunc func(*log.Logger) (Plugin, error)
 // PluginBroker handles sending messages to plugins.
 type PluginBroker struct {
 	plugins []*pluginInfo
+	logger  *log.Logger
 }
 
 // SendResult sends a *Result to all loaded plugins for further processing.
@@ -53,12 +54,19 @@ func (p *PluginBroker) add(plugin *pluginInfo) {
 }
 
 func (p *PluginBroker) run(plugin *pluginInfo, exchanges <-chan *HTTPExchange) {
-	go plugin.Listen(exchanges)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				p.logger.Printf("WARN: panic in loaded plugin")
+			}
+		}()
+		plugin.Listen(exchanges)
+	}()
 }
 
 // LoadPlugins loads judas plugins from a list of file paths.
 func LoadPlugins(logger *log.Logger, paths []string) (*PluginBroker, error) {
-	broker := &PluginBroker{}
+	broker := &PluginBroker{logger: logger}
 
 	for _, path := range paths {
 		plg, err := plugin.Open(path)
