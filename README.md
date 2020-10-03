@@ -31,7 +31,7 @@ Building
 --------
 To build `judas`, simply run `go build`.
  ```
- go build -o judas cmd/judas.go
+ go build cmd/judas.go
  ```
 
 
