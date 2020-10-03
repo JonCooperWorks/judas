@@ -71,6 +71,8 @@ Example:
 
 
 It can optionally use an upstream proxy with the ```--proxy``` argument to proxy Tor websites or hide the attack server from the target.
+Judas supports SOCKS5 and HTTP proxies.
+HTTP proxies must being with `http://` and socks5 proxies must begin with `socks5://`
 
 Example:
 ```
