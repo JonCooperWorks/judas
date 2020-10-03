@@ -59,6 +59,7 @@ Plugins
 Judas can be extended using [Go plugins](https://golang.org/pkg/plugin/). 
 An `judas` plugin is a regular Go plugin with a function called `New` that implements `judas.InitializerFunc`.
 You can use plugins to save request-response transactions to disk for further analysis, or pull credentials and sensitive information out of requests and responses on the fly.
+You should configure your plugins using [environment variables](https://golang.org/pkg/os/#Getenv).
 
 ```
 // InitializerFunc is a go function that should be exported by a function package.
