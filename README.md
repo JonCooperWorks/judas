@@ -63,7 +63,7 @@ Example:
 ```
 ./judas \
     --target https://target-url-with-self-signed-cert.com \
-    --proxy http://localhost:8080
+    --proxy http://localhost:8080 \
     --insecure-target
 ```
 
