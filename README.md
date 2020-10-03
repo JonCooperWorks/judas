@@ -1,7 +1,31 @@
 Judas
 =====
-Judas is a phishing proxy.
-It can clone a website passed to it using command line flags.
+Judas is a pluggable phishing proxy.
+It can clone any website passed to it using command line flags, and you can extend it with Go plugins for fun and profit.
+
+```
+Usage of judas:
+  -address string
+        Address and port to run proxy service on. Format address:port. (default "localhost:8080")
+  -inject-js string
+        URL to a JavaScript file you want injected.
+  -insecure
+        Listen without TLS.
+  -insecure-target
+        Not verify SSL certificate from target host.
+  -plugins string
+        Colon separated file path to plugin binaries.
+  -proxy string
+        Optional upstream SOCKS5 proxy. Useful for torification.
+  -proxy-ca-cert string
+        Proxy CA cert for signed requests
+  -ssl-hostname string
+        Hostname for SSL certificate
+  -target string
+        The website we want to phish.
+  -with-profiler
+        Attach profiler to instance.
+```
 
 Building
 --------
