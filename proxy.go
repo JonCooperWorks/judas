@@ -68,6 +68,11 @@ func (t *InterceptingTransport) RoundTrip(req *http.Request) (*http.Response, er
 		return nil, err
 	}
 
+	// If we haven't loaded any plugins, don't bother cloning the request or anything.
+	if t.Plugins == nil {
+		return resp, nil
+	}
+
 	request := &Request{Request: req}
 	clonedRequest, err := request.CloneBody(context.Background())
 	if err != nil {
