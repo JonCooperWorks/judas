@@ -40,6 +40,7 @@ Usage
 The target ```--target``` flag is required.
 `judas` will use Let's Encrypt to automatically create SSL certificates for website, simply pass the `--ssl-hostname` flag.
 
+Example:
 ```
 ./judas \
     --target https://target-url.com \
@@ -47,6 +48,8 @@ The target ```--target``` flag is required.
 ```
 
 If you want to listen using HTTP, pass the ```--insecure``` flag.
+
+Example:
 ```
 ./judas \
     --target https://target-url.com \
@@ -56,6 +59,7 @@ If you want to listen using HTTP, pass the ```--insecure``` flag.
 If you want to accept self-signed SSL certificate from target host, pass the ```--insecure-target``` flag.
 This is useful for passing it through an intercepting proxy like Burp Suite for debugging purposes.
 
+Example:
 ```
 ./judas \
     --target https://target-url-with-self-signed-cert.com \
