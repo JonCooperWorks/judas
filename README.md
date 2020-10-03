@@ -120,10 +120,9 @@ type InitializerFunc func(*log.Logger) (Plugin, error)
 The `judas.Plugin` interface has one method: `Listen`.
 
 ```
-// Plugin must be implemented by a plugin to users to hook the request - response transaction.
-// The Listen method will be run in its own goroutine, so plugins cannot block the rest of the program, however panics can take down the entire process.
+// Plugin implementations will be given a stream of HTTPExchanges to let plugins capture valuable information out of request-response transactions.
 type Plugin interface {
-	Listen(results <-chan *Result)
+	Listen(<-chan *HTTPExchange)
 }
 ```
 
