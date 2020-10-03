@@ -38,13 +38,13 @@ To build `judas`, simply run `go build`.
 Usage
 -----
 The target ```--target``` flag is required.
-`judas` will use Let's Encrypt to automatically create SSL certificates for website.
+`judas` will use Let's Encrypt to automatically create SSL certificates for website, simply pass the `--ssl-hostname` flag.
 If you want to listen using HTTP, pass the ```--insecure``` flag.
 If you want to accept self-signed SSL certificate from target host, pass the ```--insecure-target``` flag.
 
 Example:
 ```
-./judas --target https://target-url.com --cert server.crt --private-key server.key
+./judas --target https://target-url.com --ssl-hostname phishingsite.com
 ```
 
 ```
