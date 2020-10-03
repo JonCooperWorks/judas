@@ -25,16 +25,17 @@ func (p *phishingProxy) Director(request *http.Request) {
 
 	// Don't let a stray referer header give away the location of our site.
 	// Note that this will not prevent leakage from full URLs.
-	if request.Referer() != "" {
-		newReferer := strings.Replace(request.Referer(), request.Host, p.TargetURL.Host, -1)
-		request.Header.Set("Referer", newReferer)
+	referer := request.Referer()
+	if referer != "" {
+		referer = strings.Replace(referer, request.Host, p.TargetURL.Host, -1)
+		request.Header.Set("Referer", referer)
 	}
 
 	// Don't let a stray origin header give us away either.
 	origin := request.Header.Get("Origin")
 	if origin != "" {
-		newOrigin := strings.Replace(origin, request.Host, p.TargetURL.Host, -1)
-		request.Header.Set("Origin", newOrigin)
+		origin = strings.Replace(origin, request.Host, p.TargetURL.Host, -1)
+		request.Header.Set("Origin", origin)
 	}
 
 	// Go supports gzip compression, but not Brotli.
