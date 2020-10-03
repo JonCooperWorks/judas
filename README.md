@@ -151,7 +151,7 @@ judas \
      --address localhost:9000 \
      --proxy http://localhost:8080 \
      --insecure-target \
-     --plugin ./searchloggingplugin.so:./linksloggingplugin.so
+     --plugins ./searchloggingplugin.so:./linksloggingplugin.so
 ```
 
 See [examples/searchloggingplugin/searchloggingplugin.go](https://github.com/JonCooperWorks/judas/tree/master/examples/searchloggingplugin/searchloggingplugin.go)
