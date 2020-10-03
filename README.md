@@ -139,6 +139,7 @@ type HTTPExchange struct {
 You can put compiled plugins in a directory and pass them with the `--plugins` flag.
 Plugins are colon separated file paths.
 
+Example:
 ```
 judas \
      --target https://www.google.com \
