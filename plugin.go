@@ -34,6 +34,7 @@ func (p *PluginBroker) SendResult(exchange *HTTPExchange) error {
 		plugin.Input <- &HTTPExchange{
 			Request:  req,
 			Response: resp,
+			Target:   exchange.Target,
 		}
 	}
 	return nil

@@ -14,7 +14,7 @@ type searchLoggingPlugin struct {
 func (p *searchLoggingPlugin) Listen(exchanges <-chan *judas.HTTPExchange) {
 	for exchange := range exchanges {
 		searchQuery := exchange.Request.URL.Query().Get("q")
-		if searchQuery != "" {
+		if searchQuery != "" && exchange.Request.URL.Host == exchange.Target.Host {
 			p.logger.Printf("Search query: %s", searchQuery)
 		}
 	}

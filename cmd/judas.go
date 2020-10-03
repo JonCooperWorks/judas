@@ -110,6 +110,7 @@ func main() {
 
 	transport := &judas.InterceptingTransport{
 		RoundTripper: httpTransport,
+		TargetURL:    u,
 	}
 
 	if *pluginPaths != "" {

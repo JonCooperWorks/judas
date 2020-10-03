@@ -58,7 +58,8 @@ func (p *phishingProxy) ModifyResponse(response *http.Response) error {
 // InterceptingTransport sends the HTTP exchange to the loaded plugins.
 type InterceptingTransport struct {
 	http.RoundTripper
-	Plugins *PluginBroker
+	Plugins   *PluginBroker
+	TargetURL *url.URL
 }
 
 // RoundTrip executes the HTTP request and sends the exchange to judas's loaded plugins
@@ -88,6 +89,7 @@ func (t *InterceptingTransport) RoundTrip(req *http.Request) (*http.Response, er
 	httpExchange := &HTTPExchange{
 		Request:  clonedRequest,
 		Response: clonedResponse,
+		Target:   t.TargetURL,
 	}
 
 	err = t.Plugins.SendResult(httpExchange)
