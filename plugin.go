@@ -11,8 +11,8 @@ import (
 
 // InitializerFunc is a go function that should be exported by a function package.
 // It should be named "New".
-// Your InitializerFunc should return an instance of your Plugin with a reference to judas's logger for consistent logging.
-type InitializerFunc func(*log.Logger) (Plugin, error)
+// Your InitializerFunc should return an instance of your Listener with a reference to judas's logger for consistent logging.
+type InitializerFunc func(*log.Logger) (Listener, error)
 
 // RequestTransformer modifies a request before it is sent to the target website.
 // This can be used to hijack victim actions, like replacing an account number with ours.
@@ -88,16 +88,20 @@ func LoadPlugins(logger *log.Logger, paths []string) (*PluginBroker, error) {
 			return nil, err
 		}
 
-		symbol, err := plg.Lookup("New")
+		var symbol plugin.Symbol
+		var judasPlugin Listener
+		symbol, err = plg.Lookup("New")
 		if err != nil {
 			return nil, err
 		}
 
 		// Go needs this, InitializerFunc is purely for documentation.
-		initializer := symbol.(func(*log.Logger) (Plugin, error))
-		judasPlugin, err := initializer(logger)
-		if err != nil {
-			return nil, err
+		initializer, ok := symbol.(func(*log.Logger) (Listener, error))
+		if ok {
+			judasPlugin, err = initializer(logger)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		symbol, err = plg.Lookup("RequestTransformer")
@@ -117,7 +121,7 @@ func LoadPlugins(logger *log.Logger, paths []string) (*PluginBroker, error) {
 		input := make(chan *HTTPExchange)
 		httpfuzzPlugin := &pluginInfo{
 			Input:               input,
-			Plugin:              judasPlugin,
+			Listener:            judasPlugin,
 			RequestTransformer:  requestTransformer,
 			ResponseTransformer: responseTransformer,
 		}
@@ -134,20 +138,20 @@ func optionalPluginError(err error) bool {
 	return !strings.Contains(err.Error(), "not found in plugin")
 }
 
-// Plugin implementations will be given a stream of HTTPExchanges to let plugins capture valuable information out of request-response transactions.
-type Plugin interface {
+// Listener implementations will be given a stream of HTTPExchanges to let plugins capture valuable information out of request-response transactions.
+type Listener interface {
 	Listen(<-chan *HTTPExchange)
 }
 
 type pluginInfo struct {
-	Plugin
+	Listener
 	Input               chan<- *HTTPExchange
 	RequestTransformer  RequestTransformer
 	ResponseTransformer ResponseTransformer
 }
 
 // HTTPExchange contains the request sent by the user to us and the response received from the target server.
-// Plugins can use this struct to pull information out of requests and responses.
+// Listeners can use this struct to pull information out of requests and responses.
 type HTTPExchange struct {
 	Request  *Request
 	Response *Response

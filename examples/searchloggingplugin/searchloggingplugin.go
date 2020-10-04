@@ -21,6 +21,6 @@ func (p *searchLoggingPlugin) Listen(exchanges <-chan *judas.HTTPExchange) {
 }
 
 // New returns a plugin that logs google searches.
-func New(logger *log.Logger) (judas.Plugin, error) {
+func New(logger *log.Logger) (judas.Listener, error) {
 	return &searchLoggingPlugin{logger: logger}, nil
 }

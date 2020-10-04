@@ -114,15 +114,15 @@ You should configure your plugins using [environment variables](https://golang.o
 ```
 // InitializerFunc is a go function that should be exported by a function package.
 // It should be named "New".
-// Your InitializerFunc should return an instance of your Plugin with a reference to judas's logger for consistent logging.
-type InitializerFunc func(*log.Logger) (Plugin, error)
+// Your InitializerFunc should return an instance of your Listener with a reference to judas's logger for consistent logging.
+type InitializerFunc func(*log.Logger) (Listener, error)
 ```
 
-The `judas.Plugin` interface has one method: `Listen`.
+The `judas.Listener` interface has one method: `Listen`.
 
 ```
-// Plugin implementations will be given a stream of HTTPExchanges to let plugins capture valuable information out of request-response transactions.
-type Plugin interface {
+// Listener implementations will be given a stream of HTTPExchanges to let plugins capture valuable information out of request-response transactions.
+type Listener interface {
 	Listen(<-chan *HTTPExchange)
 }
 ```
@@ -132,7 +132,7 @@ These contain the `judas.Request`, the payload and the `judas.Response`, along w
 
 ```
 // HTTPExchange contains the request sent by the user to us and the response received from the target server.
-// Plugins can use this struct to pull information out of requests and responses.
+// Listeners can use this struct to pull information out of requests and responses.
 type HTTPExchange struct {
 	Request  *Request
 	Response *Response
