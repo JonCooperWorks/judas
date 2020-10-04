@@ -60,15 +60,6 @@ func main() {
 		exitWithError(err.Error())
 	}
 
-	responseTransformers := []judas.ResponseTransformer{
-		judas.LocationRewritingResponseTransformer{},
-		judas.CSPRemovingTransformer{},
-	}
-
-	if *javascriptURL != "" {
-		responseTransformers = append(responseTransformers, judas.JavaScriptInjectionTransformer{JavascriptURL: *javascriptURL})
-	}
-
 	logger := log.New(os.Stdout, "judas: ", log.Ldate|log.Ltime|log.Llongfile)
 
 	rootCAs, _ := x509.SystemCertPool()
@@ -124,10 +115,10 @@ func main() {
 	}
 
 	config := &judas.Config{
-		TargetURL:            u,
-		ResponseTransformers: responseTransformers,
-		Logger:               logger,
-		Transport:            transport,
+		TargetURL:     u,
+		Logger:        logger,
+		Transport:     transport,
+		JavascriptURL: *javascriptURL,
 	}
 	phishingProxy := judas.New(config)
 
