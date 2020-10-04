@@ -131,7 +131,7 @@ func LoadPlugins(logger *log.Logger, paths []string) (*PluginBroker, error) {
 }
 
 func optionalPluginError(err error) bool {
-	return !strings.Contains(err.Error(), "could not find symbol")
+	return !strings.Contains(err.Error(), "not found in plugin")
 }
 
 // Plugin implementations will be given a stream of HTTPExchanges to let plugins capture valuable information out of request-response transactions.
