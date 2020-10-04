@@ -76,7 +76,10 @@ func (p *PluginBroker) run(plugin *pluginInfo, exchanges <-chan *HTTPExchange) {
 				p.logger.Printf("WARN: panic in loaded plugin")
 			}
 		}()
-		plugin.Listen(exchanges)
+
+		if plugin.Input != nil {
+			plugin.Listen(exchanges)
+		}
 	}()
 }
 
