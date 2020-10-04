@@ -158,5 +158,5 @@ See [examples/searchloggingplugin/searchloggingplugin.go](https://github.com/Jon
 
 You can build a plugin using this command:
 ```
-go build -buildmode=plugin path/to/plugin.go
+go build -buildmode=plugin examples/searchloggingplugin/searchloggingplugin.go
 ```
