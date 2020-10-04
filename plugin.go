@@ -32,6 +32,32 @@ type PluginBroker struct {
 	logger  *log.Logger
 }
 
+// TransformRequest runs all loaded RequestTransformers against requests from victims.
+func (p *PluginBroker) TransformRequest(request *http.Request) error {
+	for _, plugin := range p.plugins {
+		if plugin.RequestTransformer != nil {
+			err := plugin.RequestTransformer(request)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// TransformResponse runs all loaded ResponseTransformers against responses before they're returned to victims.
+func (p *PluginBroker) TransformResponse(response *http.Response) error {
+	for _, plugin := range p.plugins {
+		if plugin.ResponseTransformer != nil {
+			err := plugin.ResponseTransformer(response)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // SendResult sends a *Result to all loaded plugins for further processing.
 func (p *PluginBroker) SendResult(exchange *HTTPExchange) error {
 	for _, plugin := range p.plugins {
