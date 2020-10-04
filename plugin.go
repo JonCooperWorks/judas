@@ -96,7 +96,7 @@ func LoadPlugins(logger *log.Logger, paths []string) (*PluginBroker, error) {
 		var symbol plugin.Symbol
 		var listener Listener
 		symbol, err = plg.Lookup("New")
-		if err != nil {
+		if err != nil && optionalPluginError(err) {
 			return nil, err
 		}
 
