@@ -101,20 +101,18 @@ func LoadPlugins(logger *log.Logger, paths []string) (*PluginBroker, error) {
 		}
 
 		symbol, err = plg.Lookup("RequestTransformer")
-		if err != nil {
-			if optionalPluginError(err) {
-				return nil, err
-			}
+		if err != nil && optionalPluginError(err) {
+			return nil, err
 		}
-		requestTransformer := symbol.(func(*http.Request) error)
+
+		requestTransformer, _ := symbol.(func(*http.Request) error)
 
 		symbol, err = plg.Lookup("ResponseTransformer")
-		if err != nil {
-			if optionalPluginError(err) {
-				return nil, err
-			}
+		if err != nil && optionalPluginError(err) {
+			return nil, err
 		}
-		responseTransformer := symbol.(func(*http.Response) error)
+
+		responseTransformer, _ := symbol.(func(*http.Response) error)
 
 		input := make(chan *HTTPExchange)
 		httpfuzzPlugin := &pluginInfo{
