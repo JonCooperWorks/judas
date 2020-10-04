@@ -35,21 +35,23 @@ type PluginBroker struct {
 // SendResult sends a *Result to all loaded plugins for further processing.
 func (p *PluginBroker) SendResult(exchange *HTTPExchange) error {
 	for _, plugin := range p.plugins {
-		// Give each plugin its own request and response.
-		req, err := exchange.Request.CloneBody(context.Background())
-		if err != nil {
-			return err
-		}
+		if plugin.Input != nil {
+			// Give each plugin its own request and response.
+			req, err := exchange.Request.CloneBody(context.Background())
+			if err != nil {
+				return err
+			}
 
-		resp, err := exchange.Response.CloneBody()
-		if err != nil {
-			return err
-		}
+			resp, err := exchange.Response.CloneBody()
+			if err != nil {
+				return err
+			}
 
-		plugin.Input <- &HTTPExchange{
-			Request:  req,
-			Response: resp,
-			Target:   exchange.Target,
+			plugin.Input <- &HTTPExchange{
+				Request:  req,
+				Response: resp,
+				Target:   exchange.Target,
+			}
 		}
 	}
 	return nil
@@ -89,16 +91,16 @@ func LoadPlugins(logger *log.Logger, paths []string) (*PluginBroker, error) {
 		}
 
 		var symbol plugin.Symbol
-		var judasPlugin Listener
+		var listener Listener
 		symbol, err = plg.Lookup("New")
 		if err != nil {
 			return nil, err
 		}
 
 		// Go needs this, InitializerFunc is purely for documentation.
-		initializer, ok := symbol.(func(*log.Logger) (Listener, error))
-		if ok {
-			judasPlugin, err = initializer(logger)
+		initializer, listenerLoaded := symbol.(func(*log.Logger) (Listener, error))
+		if listenerLoaded {
+			listener, err = initializer(logger)
 			if err != nil {
 				return nil, err
 			}
@@ -118,17 +120,21 @@ func LoadPlugins(logger *log.Logger, paths []string) (*PluginBroker, error) {
 
 		responseTransformer, _ := symbol.(func(*http.Response) error)
 
-		input := make(chan *HTTPExchange)
 		httpfuzzPlugin := &pluginInfo{
-			Input:               input,
-			Listener:            judasPlugin,
 			RequestTransformer:  requestTransformer,
 			ResponseTransformer: responseTransformer,
 		}
 
-		// Listen for results in a goroutine for each plugin
 		broker.add(httpfuzzPlugin)
-		broker.run(httpfuzzPlugin, input)
+
+		if listenerLoaded {
+			input := make(chan *HTTPExchange)
+			httpfuzzPlugin.Input = input
+			httpfuzzPlugin.Listener = listener
+			// Listen for results in a goroutine for each plugin
+			broker.run(httpfuzzPlugin, input)
+		}
+
 	}
 
 	return broker, nil
