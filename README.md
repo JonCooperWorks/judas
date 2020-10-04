@@ -140,6 +140,25 @@ type HTTPExchange struct {
 }
 ```
 
+Plugins can also modify requests after they come from the victim and responses after they're returned from the server.
+This is useful when you want to modify a request on the fly, like replacing an account number with yours.
+To take advantage of this, simply create a custom `RequestTransformer` or `ResponseTransformer`.
+
+```
+// RequestTransformer modifies a request before it is sent to the target website.
+// This can be used to hijack victim actions, like replacing an account number with ours.
+// Delays in this function will slow down the phishing site for the victim.
+// Your RequestTransformer should be a function called "RequestTransformer"
+type RequestTransformer func(*http.Request) error
+
+// ResponseTransformer modifies a response before it is returned to the victim.
+// You can use ResponseTransformers to hide any visible results of a RequestTransformer.
+// Delays in this function will slow down the phishing site for the victim.
+// Your ResponseTransformer should be a function called "ResponseTranformer"
+type ResponseTransformer func(*http.Response) error
+```
+
+You only have to implement the methods you're using.
 You can put compiled plugins in a directory and pass them with the `--plugins` flag.
 Plugins are colon separated file paths.
 
