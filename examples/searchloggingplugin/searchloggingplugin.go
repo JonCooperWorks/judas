@@ -13,7 +13,7 @@ type searchLoggingPlugin struct {
 	logger *log.Logger
 }
 
-// Listen pulls google search queries out of HTTP exchanges
+// Listen pulls search queries out of HTTP exchanges
 func (p *searchLoggingPlugin) Listen(exchanges <-chan *judas.HTTPExchange) {
 	for exchange := range exchanges {
 		searchQuery := exchange.Request.URL.Query().Get("q")
@@ -23,7 +23,7 @@ func (p *searchLoggingPlugin) Listen(exchanges <-chan *judas.HTTPExchange) {
 	}
 }
 
-// New returns a plugin that logs google searches.
+// New returns a plugin that logs searches.
 func New(logger *log.Logger) (judas.Listener, error) {
 	return &searchLoggingPlugin{logger: logger}, nil
 }
