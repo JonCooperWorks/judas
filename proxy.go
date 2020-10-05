@@ -133,9 +133,11 @@ type InterceptingTransport struct {
 
 // RoundTrip executes the HTTP request and sends the exchange to judas's loaded plugins
 func (t *InterceptingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	err := t.Plugins.TransformRequest(req)
-	if err != nil {
-		return nil, err
+	if t.Plugins != nil {
+		err := t.Plugins.TransformRequest(req)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Keep the request around for the plugins
