@@ -18,7 +18,7 @@ Usage of judas:
   -plugins string
         Colon separated file path to plugin binaries.
   -proxy string
-        Optional upstream SOCKS5 proxy. Useful for torification.
+        Optional upstream proxy. Useful for torification or debugging. Supports HTTPS and SOCKS5 based on the URL. For example, http://localhost:8080 or socks5://localhost:9150.
   -proxy-ca-cert string
         Proxy CA cert for signed requests
   -ssl-hostname string

@@ -23,7 +23,7 @@ var (
 	targetURL           = flag.String("target", "", "The website we want to phish.")
 	address             = flag.String("address", "localhost:8080", "Address and port to run proxy service on. Format address:port.")
 	attachProfiler      = flag.Bool("with-profiler", false, "Attach profiler to instance.")
-	proxyURL            = flag.String("proxy", "", "Optional upstream SOCKS5 proxy. Useful for torification.")
+	proxyURL            = flag.String("proxy", "", "Optional upstream proxy. Useful for torification or debugging. Supports HTTPS and SOCKS5 based on the URL. For example, http://localhost:8080 or socks5://localhost:9150.")
 	javascriptURL       = flag.String("inject-js", "", "URL to a JavaScript file you want injected.")
 	insecure            = flag.Bool("insecure", false, "Listen without TLS.")
 	sourceInsecure      = flag.Bool("insecure-target", false, "Not verify SSL certificate from target host.")
