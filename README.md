@@ -165,7 +165,7 @@ Plugins are colon separated file paths.
 Example:
 ```
 judas \
-     --target https://www.google.com \
+     --target https://www.target.com \
      --insecure \
      --address localhost:9000 \
      --proxy http://localhost:8080 \
