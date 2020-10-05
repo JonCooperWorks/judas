@@ -154,7 +154,7 @@ type RequestTransformer func(*http.Request) error
 // ResponseTransformer modifies a response before it is returned to the victim.
 // You can use ResponseTransformers to hide any visible results of a RequestTransformer.
 // Delays in this function will slow down the phishing site for the victim.
-// Your ResponseTransformer should be a function called "ResponseTranformer"
+// Your ResponseTransformer should be a function called "ResponseTransformer"
 type ResponseTransformer func(*http.Response) error
 ```
 
