@@ -109,17 +109,16 @@ func (p *PluginBroker) add(plugin *pluginInfo) {
 }
 
 func (p *PluginBroker) run(plugin *pluginInfo, exchanges <-chan *HTTPExchange) {
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				p.logger.Printf("WARN: panic in loaded plugin")
-			}
-		}()
-
-		if plugin.Input != nil {
+	if plugin.Input != nil {
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					p.logger.Printf("WARN: panic in loaded plugin")
+				}
+			}()
 			plugin.Listen(exchanges)
-		}
-	}()
+		}()
+	}
 }
 
 // LoadPlugins loads judas plugins from a list of file paths.
