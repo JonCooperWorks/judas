@@ -15,6 +15,7 @@ import (
 	"github.com/valyala/bytebufferpool"
 )
 
+// bufferPool is a httputil.BufferPool backed by a bytebufferpool.ByteBuffer.
 type bufferPool struct {
 	*bytebufferpool.ByteBuffer
 }
