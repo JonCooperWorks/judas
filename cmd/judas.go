@@ -5,18 +5,14 @@ import (
 	"crypto/x509"
 	"flag"
 	"fmt"
+	"github.com/joncooperworks/judas"
 	"io/ioutil"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
-	"time"
-
-	"github.com/joncooperworks/judas"
-	"golang.org/x/crypto/acme/autocert"
 )
 
 var (
@@ -27,7 +23,8 @@ var (
 	javascriptURL       = flag.String("inject-js", "", "URL to a JavaScript file you want injected.")
 	insecure            = flag.Bool("insecure", false, "Listen without TLS.")
 	sourceInsecure      = flag.Bool("insecure-target", false, "Not verify SSL certificate from target host.")
-	proxyCACertFilename = flag.String("proxy-ca-cert", "", "Proxy CA cert for signed requests")
+	proxyCACert 		= flag.String("proxy-ca-cert", "", "Proxy CA cert for signed requests")
+	proxyCAKey 			= flag.String("proxy-ca-key", "", "Proxy CA key for signed requests")
 	sslHostname         = flag.String("ssl-hostname", "", "Hostname for SSL certificate")
 	pluginPaths         = flag.String("plugins", "", "Colon separated file path to plugin binaries.")
 )
@@ -66,8 +63,8 @@ func main() {
 	if rootCAs == nil {
 		rootCAs = x509.NewCertPool()
 	}
-	if *proxyCACertFilename != "" {
-		proxyCACertFile, err := os.Open(*proxyCACertFilename)
+	if *proxyCACert != "" {
+		proxyCACertFile, err := os.Open(*proxyCACert)
 		if err != nil {
 			logger.Fatal(err)
 		}
@@ -79,7 +76,7 @@ func main() {
 		}
 
 		if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
-			logger.Fatalf("failed to trust custom CA certs from %s", *proxyCACertFilename)
+			logger.Fatalf("failed to trust custom CA certs from %s", *proxyCACert)
 		}
 	}
 
@@ -143,55 +140,11 @@ func main() {
 			log.Println(err)
 		}
 	} else {
-		certManager := autocert.Manager{
-			Prompt:     autocert.AcceptTOS,
-			HostPolicy: autocert.HostWhitelist(*sslHostname),
-			Cache:      autocert.DirCache(cacheDir(*sslHostname)),
+		listenAddr := fmt.Sprintf("https://%s", *address)
+		log.Println("Listening on:", listenAddr)
+		err = http.ListenAndServeTLS(*address, *proxyCACert, *proxyCAKey, nil)
+		if err != nil {
+			log.Println(err)
 		}
-
-		tlsConfig := &tls.Config{
-			GetCertificate: certManager.GetCertificate,
-			MinVersion:     tls.VersionTLS12,
-			CipherSuites: []uint16{
-				// TLSv1.3
-				tls.TLS_AES_256_GCM_SHA384,
-				tls.TLS_CHACHA20_POLY1305_SHA256,
-				tls.TLS_AES_128_GCM_SHA256,
-
-				// TLSv1.2
-				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-				tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
-				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-			},
-		}
-
-		server := &http.Server{
-			ReadTimeout:  5 * time.Second,
-			WriteTimeout: 10 * time.Second,
-			IdleTimeout:  120 * time.Second,
-			Addr:         ":https",
-			TLSConfig:    tlsConfig,
-		}
-
-		go http.ListenAndServe(":http", certManager.HTTPHandler(nil))
-
-		server.ListenAndServeTLS("", "")
 	}
-
-}
-
-func cacheDir(hostname string) (dir string) {
-	dir = filepath.Join(os.TempDir(), "cache-golang-autocert-"+hostname)
-	if _, err := os.Stat(dir); !os.IsNotExist(err) {
-		log.Println("Found cache dir:", dir)
-		return dir
-	}
-	if err := os.MkdirAll(dir, 0700); err == nil {
-		return dir
-	}
-
-	panic("couldnt create cert cache directory")
 }
